@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # Импортируем роутеры из слоя API
 from app.api.auth import router as auth_router
 from app.api.subjects import router as subjects_router
+from app.api.grade import router as grades_router
 
 # Инициализируем приложение FastAPI
 app = FastAPI(
@@ -34,6 +35,8 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(subjects_router)
 
+# Там, где подключаются остальные роутеры (auth, subjects):
+app.include_router(grades_router)
 # Корневой эндпоинт для быстрой проверки работоспособности (Health Check)
 @app.get("/", tags=["Root"])
 async def root():

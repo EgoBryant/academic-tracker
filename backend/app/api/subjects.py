@@ -9,7 +9,7 @@ from app.schemas.subject import SubjectCreate, SubjectUpdate, SubjectResponse
 from app.repository.subjects import SubjectRepository
 from app.service.subjects import SubjectService
 
-router = APIRouter(prefix="/v1/subjects", tags=["Subjects"])
+router = APIRouter(prefix="/api/subjects", tags=["Subjects"])
 
 # Конструктор сборки слоев для предметов
 def get_subject_service(db: AsyncSession = Depends(get_db)) -> SubjectService:

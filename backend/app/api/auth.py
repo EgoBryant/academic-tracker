@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, status
+from fastapi.security import OAuth2PasswordRequestForm  # <-- Добавили импорт формы
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.schemas.auth import UserRegister, UserResponse, UserLogin, Token
 from app.repository.user import UserRepository
 from app.service.auth import AuthService
 
-router = APIRouter(prefix="/v1/auth", tags=["Authentication"])
+router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 # Зависимость (фабрика) для сборки слоев
 def get_auth_service(db: AsyncSession = Depends(get_db)) -> AuthService:
@@ -22,8 +23,14 @@ async def register(
 
 @router.post("/login", response_model=Token)
 async def login(
-    user_in: UserLogin, 
+    # Заменяем user_in: UserLogin на form_data, чтобы Swagger мог отправлять форму
+    form_data: OAuth2PasswordRequestForm = Depends(), 
     auth_service: AuthService = Depends(get_auth_service)
 ):
     """Эндпоинт авторизации (выдача токена)."""
+    
+    # Маппим данные из формы (где username — это email) в твою схему UserLogin.
+    # Слой AuthService получает ровно то, что ожидает, и ничего переписывать там не надо.
+    user_in = UserLogin(email=form_data.username, password=form_data.password)
+    
     return await auth_service.authenticate_user(user_in)

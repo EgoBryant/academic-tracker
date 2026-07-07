@@ -12,7 +12,7 @@ from app.repository.user import UserRepository
 
 # Настройка passlib для bcrypt и определение схемы OAuth2
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 def get_password_hash(password: str) -> str:
     """Хэширование пароля с помощью bcrypt."""

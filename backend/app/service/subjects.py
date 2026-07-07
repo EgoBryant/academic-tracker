@@ -1,6 +1,9 @@
 from fastapi import HTTPException, status
 from app.repository.subjects import SubjectRepository
 from app.schemas.subject import SubjectCreate, SubjectUpdate
+from sqlalchemy import select, update, func
+from app.models.subject import Subject
+from app.models.grade import Grade
 
 class SubjectService:
     def __init__(self, subject_repo: SubjectRepository):
@@ -39,3 +42,34 @@ class SubjectService:
             )
         await self.subject_repo.delete(db_subject)
         return None
+    
+    async def recalculate_average_grade(self, subject_id: int) -> float:
+        """Пересчитывает средний балл для предмета и сохраняет его в БД."""
+        # 1. Получаем все значения оценок для данного предмета
+        query = select(Grade.grade_value).where(Grade.subject_id == subject_id)
+        result = await self.db.execute(query)
+        grades_list = result.scalars().all()
+
+        if not grades_list:
+            avg_value = 0.0
+        else:
+            # Конвертируем str во float, так как grade_value — это String(10)
+            valid_grades = []
+            for val in grades_list:
+                try:
+                    valid_grades.append(float(val))
+                except (ValueError, TypeError):
+                    continue  # Игнорируем строки типа "зачет"
+            
+            avg_value = round(sum(valid_grades) / len(valid_grades), 2) if valid_grades else 0.0
+
+        # 2. Обновляем колонку average_grade в таблице subjects
+        update_query = (
+            update(Subject)
+            .where(Subject.subject_id == subject_id)
+            .values(average_grade=avg_value)
+        )
+        await self.db.execute(update_query)
+        await self.db.commit()
+        
+        return avg_value
