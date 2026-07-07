@@ -1,71 +1,54 @@
-
-import select
-from statistics import quantiles
-from unittest import result
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.subject import Subject
-from app.schemas.subject import SubjectResponse , SubjectCreate, SubjectUpdate  
+from typing import List
+
 from app.core.database import get_db
+from app.core.security import get_current_user
+from app.models import User
+from app.schemas.subject import SubjectCreate, SubjectUpdate, SubjectResponse
+from app.repository.subjects import SubjectRepository
+from app.service.subjects import SubjectService
 
+router = APIRouter(prefix="/v1/subjects", tags=["Subjects"])
 
-router = APIRouter(prefix="/api/subjects", tags=["Subjects"])
+# Конструктор сборки слоев для предметов
+def get_subject_service(db: AsyncSession = Depends(get_db)) -> SubjectService:
+    subject_repo = SubjectRepository(db)
+    return SubjectService(subject_repo)
 
-@router.get("/", response_model= list[SubjectResponse])
-async def get_subjects(db: AsyncSession = Depends(get_db)):
-  query = select(Subject).order_by(Subject.id)
-  result = await db.execute(query)
-  return result.scalars().all()
+@router.get("/", response_model=List[SubjectResponse])
+async def get_subjects(
+    current_user: User = Depends(get_current_user),
+    service: SubjectService = Depends(get_subject_service)
+):
+    """Получение списка всех предметов текущего студента."""
+    return await service.get_user_subjects(current_user.user_id)
 
 @router.post("/", response_model=SubjectResponse, status_code=status.HTTP_201_CREATED)
-async def create_subject(subject_in: SubjectCreate, db: AsyncSession = Depends(get_db)):
-    query = select(Subject).where(Subject.name == subject_in.name)
-    existing = await db.execute(query)
-    if existing.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Предмет с таким названием уже существует"
-        )
-    
-    db_subject = Subject(**subject_in.model_dump())
-    db.add(db_subject)
-    await db.commit()
-    await db.refresh(db_subject)
-    return db_subject
+async def create_subject(
+    subject_in: SubjectCreate,
+    current_user: User = Depends(get_current_user),
+    service: SubjectService = Depends(get_subject_service)
+):
+    """Создание нового предмета."""
+    return await service.create_user_subject(subject_in, current_user.user_id)
 
-@router.put("/{id}", response_model=SubjectResponse)
-async def update_subject(id: int, subject_in: SubjectUpdate, db: AsyncSession = Depends(get_db)):
-    query = select(Subject).where(Subject.id == id)
-    result = await db.execute(query)
-    db_subject = result.scalar_one_or_none()
-    
-    if not db_subject:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Предмет не найден"
-        )
-    
-    update_data = subject_in.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(db_subject, key, value)
-        
-    await db.commit()
-    await db.refresh(db_subject)
-    return db_subject
+@router.put("/{subject_id}", response_model=SubjectResponse)
+async def update_subject(
+    subject_id: int,
+    subject_in: SubjectUpdate,
+    current_user: User = Depends(get_current_user),
+    service: SubjectService = Depends(get_subject_service)
+):
+    """Редактирование параметров предмета."""
+    return await service.update_user_subject(subject_id, subject_in, current_user.user_id)
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_subject(id: int, db: AsyncSession = Depends(get_db)):
-    query = select(Subject).where(Subject.id == id)
-    result = await db.execute(query)
-    db_subject = result.scalar_one_or_none()
-    
-    if not db_subject:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Предмет не найден"
-        )
-    
-    await db.delete(db_subject)
-    await db.commit()
+@router.delete("/{subject_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_subject(
+    subject_id: int,
+    current_user: User = Depends(get_current_user),
+    service: SubjectService = Depends(get_subject_service)
+):
+    """Удаление предмета."""
+    await service.delete_user_subject(subject_id, current_user.user_id)
     return None
-

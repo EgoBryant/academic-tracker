@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     secret_key: str
     algorithm: str = "HS256"  # значение по умолчанию, если не будет в .env
     access_token_expire_minutes: int = 60
+    refresh_token_expire_days: int = 7  # Срок жизни refresh-токена (например, 7 дней)
+
+    # Константы для типов токенов (не нужно прописывать в .env, берутся дефолты)
+    access_token_type: str = "access"
+    refresh_token_type: str = "refresh"
 
     # ==============================================================================
     # НАСТРОЙКА ИСТОЧНИКА ДАННЫХ (Для Pydantic v2)

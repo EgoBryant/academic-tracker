@@ -1,33 +1,43 @@
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
+# Импортируем роутеры из слоя API
+from app.api.auth import router as auth_router
 from app.api.subjects import router as subjects_router
-from app.core.database import engine  # Импортируем наш асинхронный движок
 
-
-# 1. Создаем lifespan-контекст для управления жизненным циклом приложения
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Код здесь выполняется СТРОГО ПРИ СТАРТЕ сервера
-    print("Запуск приложения: проверяем подключение к базе данных...")
-    yield
-    # Код здесь выполняется СТРОГО ПРИ ОСТАНОВКЕ сервера
-    print("Остановка приложения: закрываем пул соединений с БД...")
-    await engine.dispose()
-
-
-# 2. Передаем lifespan в сам FastAPI
+# Инициализируем приложение FastAPI
 app = FastAPI(
-    title="Academic Tracker API",
-    description="Бэкенд-служба для отслеживания успеваемости",
+    title="Student Dashboard API",
+    description="Бэкенд-система с JWT-авторизацией для учета предметов, заданий и оценок",
     version="1.0.0",
-    lifespan=lifespan  # Подключаем жизненный цикл
 )
 
-# 3. Подключаем роутер предметов
+# Настройка CORS (Cross-Origin Resource Sharing)
+# Необходима для того, чтобы ваш React-фронтенд или мобильное приложение могли слать запросы к API
+origins = [
+    "http://localhost:3000",  # Локальный порт React
+    "http://localhost:5173",  # Локальный порт Vite / React
+    "*",                      # На этапе разработки можно временно разрешить все источники
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],  # Разрешаем все HTTP-методы (GET, POST, PUT, DELETE)
+    allow_headers=["*"],  # Разрешаем все заголовки (включая Authorization для JWT)
+)
+
+# Подключаем роутеры
+# Так как префиксы (/v1/auth и /v1/subjects) мы уже жестко зашили внутри самих файлов роутеров,
+# здесь мы просто регистрируем модули в приложении.
+app.include_router(auth_router)
 app.include_router(subjects_router)
 
-
-@app.get("/")
-def read_root():
-    return {"message": "Привет! FastAPI успешно запущен и работает."}
+# Корневой эндпоинт для быстрой проверки работоспособности (Health Check)
+@app.get("/", tags=["Root"])
+async def root():
+    return {
+        "status": "healthy",
+        "message": "Бэкенд успешно запущен. Документация доступна по адресу /docs"
+    }

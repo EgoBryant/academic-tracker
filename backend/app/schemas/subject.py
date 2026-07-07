@@ -1,22 +1,25 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
-# Общие поля для всех схем предмета
+# Общие поля предмета согласно ТЗ
 class SubjectBase(BaseModel):
-    name: str
-    description: str | None = None  # Используем современный str | None вместо Optional
+    subject_name: str = Field(..., min_length=1, max_length=100)
+    teacher_name: str | None = Field(None, max_length=100)
+    color: str | None = Field(None, max_length=7)
 
-# Схема для создания (POST)
+# Схема для создания (POST) — добавляем user_id
 class SubjectCreate(SubjectBase):
-    pass
+    user_id: int  # Обязательное поле связи с пользователем из ТЗ
 
 # Схема для обновления (PUT)
 class SubjectUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
+    subject_name: str | None = Field(None, min_length=1, max_length=100)
+    teacher_name: str | None = Field(None, max_length=100)
+    color: str | None = Field(None, max_length=7)
+    user_id: int | None = None
 
 # Схема ответа (GET, POST, PUT)
 class SubjectResponse(SubjectBase):
-    id: int
+    subject_id: int
+    user_id: int  # Возвращаем тоже, чтобы фронтенд видел владельца
 
-    # Включаем чтение данных из существующих ORM-моделей
     model_config = ConfigDict(from_attributes=True)
