@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import type { FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { AxiosError } from 'axios'
+import { loginUser } from '../../api/auth'
+import { setAuthToken } from '../../api/authToken'
 
 export function LoginPage() {
+  const navigate = useNavigate()
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [isSubmitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('auth-theme')
@@ -20,6 +27,26 @@ export function LoginPage() {
     })
   }
 
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    const formData = new FormData(event.currentTarget)
+    const email = String(formData.get('email') ?? '').trim()
+    const password = String(formData.get('password') ?? '')
+
+    try {
+      setSubmitting(true)
+      setError(null)
+      const loginResponse = await loginUser(email, password)
+      setAuthToken(loginResponse.access_token)
+      navigate('/subjects')
+    } catch (requestError) {
+      setError(getAuthErrorMessage(requestError))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <main className="login-page" data-theme={theme}>
       <header className="login-header">
@@ -31,12 +58,7 @@ export function LoginPage() {
           </svg>
           <span>Зачётка</span>
         </Link>
-        <button
-          className="login-theme-toggle"
-          type="button"
-          onClick={toggleTheme}
-          aria-label="Сменить тему"
-        >
+        <button className="login-theme-toggle" type="button" onClick={toggleTheme} aria-label="Сменить тему">
           {theme === 'light' ? (
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M21 12.8A8 8 0 1 1 11.2 3a6.4 6.4 0 0 0 9.8 9.8Z" />
@@ -64,7 +86,7 @@ export function LoginPage() {
             </Link>
           </div>
 
-          <form className="login-card">
+          <form className="login-card" onSubmit={handleSubmit}>
             <label className="login-field">
               <span>EMAIL</span>
               <span className="login-input-wrap">
@@ -72,11 +94,7 @@ export function LoginPage() {
                   <path d="M4 6h16v12H4V6Z" />
                   <path d="m4 7 8 6 8-6" />
                 </svg>
-                <input
-                  name="email"
-                  type="email"
-                  placeholder="ivan@example.ru"
-                />
+                <input name="email" type="email" placeholder="ivan@example.ru" required />
               </span>
             </label>
 
@@ -88,12 +106,8 @@ export function LoginPage() {
                   <path d="M8 10V7a4 4 0 0 1 8 0v3" />
                   <path d="M12 14.5v2" />
                 </svg>
-                <input name="password" type="password" placeholder="••••••••" />
-                <button
-                  className="login-eye"
-                  type="button"
-                  aria-label="Показать пароль"
-                >
+                <input name="password" type="password" placeholder="••••••••" required />
+                <button className="login-eye" type="button" aria-label="Показать пароль">
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
                     <circle cx="12" cy="12" r="2.5" />
@@ -112,8 +126,10 @@ export function LoginPage() {
               </button>
             </div>
 
-            <button className="login-submit" type="button">
-              <span>Войти</span>
+            {error && <p className="login-error">{error}</p>}
+
+            <button className="login-submit" type="submit" disabled={isSubmitting}>
+              <span>{isSubmitting ? 'Вход...' : 'Войти'}</span>
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M5 12h14" />
                 <path d="m13 6 6 6-6 6" />
@@ -126,4 +142,12 @@ export function LoginPage() {
       <footer className="login-footer">© 2026</footer>
     </main>
   )
+}
+
+function getAuthErrorMessage(error: unknown) {
+  if (error instanceof AxiosError && typeof error.response?.data?.detail === 'string') {
+    return error.response.data.detail
+  }
+
+  return 'Не удалось войти. Проверьте email и пароль.'
 }

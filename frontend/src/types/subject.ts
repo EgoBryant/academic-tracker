@@ -3,5 +3,12 @@ export interface Subject {
   subject_name: string
   teacher_name: string
   color: string
-  average_grade: number
+  user_id?: number
+  average_grade?: number
+}
+
+export interface SubjectPayload {
+  subject_name: string
+  teacher_name: string
+  color: string
 }

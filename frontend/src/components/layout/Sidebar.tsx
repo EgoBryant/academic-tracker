@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import { removeAuthToken } from '../../api/authToken'
 
 interface SidebarProps {
   theme: 'light' | 'dark'
@@ -7,6 +8,11 @@ interface SidebarProps {
 
 export function Sidebar({ theme, onToggleTheme }: SidebarProps) {
   const navigate = useNavigate()
+
+  const handleLogout = () => {
+    removeAuthToken()
+    navigate('/login')
+  }
 
   return (
     <aside className="sidebar">
@@ -59,7 +65,7 @@ export function Sidebar({ theme, onToggleTheme }: SidebarProps) {
           <span>{theme === 'light' ? 'Темная тема' : 'Светлая тема'}</span>
         </button>
 
-        <button className="sidebar__action" type="button" onClick={() => navigate('/login')}>
+        <button className="sidebar__action" type="button" onClick={handleLogout}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M9 21H5.5A1.5 1.5 0 0 1 4 19.5v-15A1.5 1.5 0 0 1 5.5 3H9" />
             <path d="M15 17l5-5-5-5M20 12H9" />
