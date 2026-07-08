@@ -5,7 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.auth import router as auth_router
 from app.api.subjects import router as subjects_router
 from app.api.grade import router as grades_router
-
+from app.api.assignments import router as assignments_router
+from app.api.export_import import router as export_import_router
 # Инициализируем приложение FastAPI
 app = FastAPI(
     title="Student Dashboard API",
@@ -34,9 +35,10 @@ app.add_middleware(
 # здесь мы просто регистрируем модули в приложении.
 app.include_router(auth_router)
 app.include_router(subjects_router)
-
+app.include_router(assignments_router)
 # Там, где подключаются остальные роутеры (auth, subjects):
 app.include_router(grades_router)
+app.include_router(export_import_router)
 # Корневой эндпоинт для быстрой проверки работоспособности (Health Check)
 @app.get("/", tags=["Root"])
 async def root():
