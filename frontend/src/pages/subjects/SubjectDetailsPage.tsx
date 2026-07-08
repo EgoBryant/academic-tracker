@@ -3,6 +3,8 @@ import type { FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { AxiosError } from 'axios'
 import { createGrade, deleteGrade, getGrades, updateGrade } from '../../api/grades'
+import { ExportModal } from '../../components/export/ExportModal'
+import { ImportModal } from '../../components/export/ImportModal'
 import type { Grade, GradePayload } from '../../types/grade'
 
 type GradeModalMode = 'create' | 'edit'
@@ -19,6 +21,8 @@ export function SubjectDetailsPage() {
   const [isGradeModalOpen, setGradeModalOpen] = useState(false)
   const [isSubmitting, setSubmitting] = useState(false)
   const [deletingGradeId, setDeletingGradeId] = useState<number | null>(null)
+  const [isExportModalOpen, setExportModalOpen] = useState(false)
+  const [isImportModalOpen, setImportModalOpen] = useState(false)
 
   useEffect(() => {
     loadGrades()
@@ -141,10 +145,10 @@ export function SubjectDetailsPage() {
 
         <footer className="subjects-panel__footer">
           <div className="subjects-file-actions">
-            <button className="subjects-file-button" type="button">
+            <button className="subjects-file-button" type="button" onClick={() => setImportModalOpen(true)}>
               Импорт
             </button>
-            <button className="subjects-file-button" type="button">
+            <button className="subjects-file-button" type="button" onClick={() => setExportModalOpen(true)}>
               Экспорт
             </button>
           </div>
@@ -178,6 +182,8 @@ export function SubjectDetailsPage() {
           onSubmit={handleSubmitGrade}
         />
       )}
+      {isImportModalOpen && <ImportModal onClose={() => setImportModalOpen(false)} onImported={loadGrades} />}
+      {isExportModalOpen && <ExportModal onClose={() => setExportModalOpen(false)} />}
     </section>
   )
 }

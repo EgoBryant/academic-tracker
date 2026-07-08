@@ -3,6 +3,7 @@ import { AxiosError } from 'axios'
 import { createSubject, deleteSubject, getSubjects, updateSubject } from '../../api/subjects'
 import { getAuthToken } from '../../api/authToken'
 import { ExportModal } from '../../components/export/ExportModal'
+import { ImportModal } from '../../components/export/ImportModal'
 import { SubjectForm } from '../../components/subjects/SubjectForm'
 import { SubjectTable } from '../../components/subjects/SubjectTable'
 import type { Subject, SubjectPayload } from '../../types/subject'
@@ -22,6 +23,7 @@ export function SubjectsPage() {
   const [isSubmitting, setSubmitting] = useState(false)
   const [deletingSubjectId, setDeletingSubjectId] = useState<number | null>(null)
   const [isExportModalOpen, setExportModalOpen] = useState(false)
+  const [isImportModalOpen, setImportModalOpen] = useState(false)
 
   useEffect(() => {
     loadSubjects()
@@ -141,7 +143,7 @@ export function SubjectsPage() {
 
         <footer className="subjects-panel__footer">
           <div className="subjects-file-actions">
-            <button className="subjects-file-button" type="button">
+            <button className="subjects-file-button" type="button" onClick={() => setImportModalOpen(true)}>
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M14 3v5h5" />
                 <path d="M6 21h12a1 1 0 0 0 1-1V8l-5-5H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1Z" />
@@ -187,6 +189,9 @@ export function SubjectsPage() {
           onClose={closeSubjectModal}
           onSubmit={handleSubmitSubject}
         />
+      )}
+      {isImportModalOpen && (
+        <ImportModal onClose={() => setImportModalOpen(false)} onImported={loadSubjects} />
       )}
       {isExportModalOpen && <ExportModal onClose={() => setExportModalOpen(false)} />}
     </section>

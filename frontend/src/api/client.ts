@@ -1,11 +1,16 @@
 import axios from 'axios'
+import type { InternalAxiosRequestConfig } from 'axios'
 import { getAuthToken } from './authToken'
 
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? '/api',
 })
 
-apiClient.interceptors.request.use((config) => {
+export const dataClient = axios.create({
+  baseURL: import.meta.env.VITE_DATA_API_URL ?? '',
+})
+
+const addAuthHeader = (config: InternalAxiosRequestConfig) => {
   const token = getAuthToken()
 
   if (token) {
@@ -13,4 +18,7 @@ apiClient.interceptors.request.use((config) => {
   }
 
   return config
-})
+}
+
+apiClient.interceptors.request.use(addAuthHeader)
+dataClient.interceptors.request.use(addAuthHeader)
