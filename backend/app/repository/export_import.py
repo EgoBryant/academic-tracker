@@ -67,3 +67,4 @@ class DataTransferRepository:
     async def commit(self) -> None:
         """Зафиксировать транзакцию"""
         await self.db.commit()
+    

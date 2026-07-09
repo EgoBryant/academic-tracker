@@ -26,3 +26,22 @@ class AssignmentRepository:
         )
         result = await self.db.execute(query)
         return result.scalars().all()
+    
+    async def delete(self, assignment: Assignment) -> None:
+        """Удалить задание из сессии (без фиксации коммита)."""
+        await self.db.delete(assignment)
+        await self.db.flush()
+    
+    def add(self, instance: any) -> None:
+        self.db.add(instance)
+
+    async def flush(self) -> None:
+        """Синхронизировать состояние объектов с БД в рамках транзакции"""
+        await self.db.flush()
+
+    async def commit(self) -> None:
+        """Зафиксировать транзакцию"""
+        await self.db.commit()
+    
+    async def refresh(self, instance: any) -> None:
+        await self.db.refresh(instance)
