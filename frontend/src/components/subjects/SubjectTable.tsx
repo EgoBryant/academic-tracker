@@ -43,7 +43,7 @@ export function SubjectTable({ subjects, deletingSubjectId, onEdit, onDelete }: 
                 </td>
                 <td className="subjects-table__grade">{averageGrade}</td>
                 <td>{subject.teacher_name}</td>
-                <td>01.01.2027</td>
+                <td>—</td>
                 <td>
                   <div className="subjects-table__actions">
                     <button

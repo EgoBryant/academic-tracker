@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { AxiosError } from 'axios'
 import { loginUser, registerUser } from '../../api/auth'
 import { setAuthToken, setAuthUser } from '../../api/authToken'
+import { getApiErrorMessage } from '../../api/errorMessage'
 
 export function RegisterPage() {
   const navigate = useNavigate()
@@ -86,7 +86,7 @@ export function RegisterPage() {
         <div className="login-bg login-bg--gold" />
 
         <div className="login-auth login-auth--register">
-          <div className="login-tabs" role="tablist" aria-label="Auth tabs">
+          <div className="login-tabs" role="tablist" aria-label="Вкладки авторизации">
             <Link className="login-tab" to="/login">
               Авторизация
             </Link>
@@ -165,23 +165,11 @@ function validateRegisterForm(fullName: string, email: string, password: string)
 }
 
 function getAuthErrorMessage(error: unknown) {
-  if (error instanceof AxiosError) {
-    if (error.response?.status === 400 || error.response?.status === 409) {
-      return typeof error.response.data?.detail === 'string'
-        ? error.response.data.detail
-        : 'Проверьте данные регистрации.'
-    }
-
-    if (typeof error.response?.data?.detail === 'string') {
-      return error.response.data.detail
-    }
-
-    if (error.response?.status && error.response.status >= 500) {
-      return 'Ошибка сервера. Попробуйте позже.'
-    }
-  }
-
-  return 'Не удалось создать аккаунт. Проверьте данные и попробуйте ещё раз.'
+  return getApiErrorMessage(error, {
+    validation: 'Проверьте данные регистрации.',
+    server: 'Ошибка сервера. Попробуйте позже.',
+    fallback: 'Не удалось создать аккаунт. Проверьте данные и попробуйте ещё раз.',
+  })
 }
 
 function isValidEmail(email: string) {

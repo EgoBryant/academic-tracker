@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { AxiosError } from 'axios'
 import { loginUser } from '../../api/auth'
 import { setAuthToken, setAuthUser } from '../../api/authToken'
+import { getApiErrorMessage } from '../../api/errorMessage'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -84,7 +84,7 @@ export function LoginPage() {
         <div className="login-bg login-bg--gold" />
 
         <div className="login-auth">
-          <div className="login-tabs" role="tablist" aria-label="Auth tabs">
+          <div className="login-tabs" role="tablist" aria-label="Вкладки авторизации">
             <button className="login-tab login-tab--active" type="button">
               Авторизация
             </button>
@@ -162,21 +162,11 @@ function validateLoginForm(email: string, password: string) {
 }
 
 function getAuthErrorMessage(error: unknown) {
-  if (error instanceof AxiosError) {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      return 'Неверный email или пароль.'
-    }
-
-    if (typeof error.response?.data?.detail === 'string') {
-      return error.response.data.detail
-    }
-
-    if (error.response?.status && error.response.status >= 500) {
-      return 'Ошибка сервера. Попробуйте позже.'
-    }
-  }
-
-  return 'Не удалось войти. Проверьте email и пароль.'
+  return getApiErrorMessage(error, {
+    unauthorized: 'Неверный email или пароль.',
+    server: 'Ошибка сервера. Попробуйте позже.',
+    fallback: 'Не удалось войти. Проверьте email и пароль.',
+  })
 }
 
 function isValidEmail(email: string) {

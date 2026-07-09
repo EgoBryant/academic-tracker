@@ -1,0 +1,193 @@
+﻿.app-shell {
+  --app-bg: #f8f9ff;
+  --app-sidebar-bg: #ffffff;
+  --app-panel-bg: #ffffff;
+  --app-table-head: #eff4ff;
+  --app-footer-bg: #eff4ff;
+  --app-brand: #745b00;
+  --app-text: #0b1c30;
+  --app-muted: #4e4632;
+  --app-subtle: #586377;
+  --app-border: #d2c5ab;
+  --app-user-bg: #e5eeff;
+  --app-primary: #ffcc00;
+  --app-primary-text: #6f5700;
+  --app-badge-bg: #dbeafe;
+  --app-badge-text: #2563eb;
+  --app-secondary-button: #515f74;
+  --app-secondary-button-text: #ffffff;
+  --subject-modal-bg: #ffffff;
+  --subject-modal-footer: #e5eeff;
+  --subject-modal-title: #0b1c30;
+  --subject-modal-label: #4e4632;
+  --subject-modal-close: #4e4632;
+  --subject-modal-input: #eff4ff;
+  --subject-modal-input-text: #000000;
+  --subject-modal-cancel: #545f73;
+  --calendar-bg: #f8f9ff;
+  --calendar-panel-bg: #ffffff;
+  --calendar-head-bg: rgba(239, 244, 255, 0.5);
+  --calendar-cell-muted-bg: rgba(239, 244, 255, 0.3);
+  --calendar-day-muted: rgba(78, 70, 50, 0.4);
+  --calendar-event-blue-bg: rgba(196, 211, 236, 0.3);
+  --calendar-event-blue-border: #515f74;
+  --calendar-event-blue-text: #4d5b70;
+  --calendar-event-red-bg: rgba(255, 218, 214, 0.4);
+  --calendar-event-red-border: #ba1a1a;
+  --calendar-event-red-text: #93000a;
+  --calendar-shadow: rgba(0, 0, 0, 0.12);
+
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 256px minmax(0, 1fr);
+  color: var(--app-text);
+  background: var(--app-bg);
+}
+
+.app-shell[data-theme='dark'] {
+  --app-bg: #141315;
+  --app-sidebar-bg: #201f21;
+  --app-panel-bg: #1c1b1d;
+  --app-table-head: #47464c;
+  --app-footer-bg: #1c1b1d;
+  --app-brand: #c8c5cd;
+  --app-text: #c6c4df;
+  --app-muted: #c8c5cd;
+  --app-subtle: #c8c5cd;
+  --app-user-bg: #141315;
+  --app-secondary-button: #c6c4df;
+  --app-secondary-button-text: #2f2e43;
+  --subject-modal-bg: #201f21;
+  --subject-modal-footer: #141315;
+  --subject-modal-title: #c6c4df;
+  --subject-modal-label: #929097;
+  --subject-modal-close: #c8c5cd;
+  --subject-modal-input-text: #000000;
+  --subject-modal-cancel: #929097;
+  --calendar-bg: #141315;
+  --calendar-panel-bg: #1c1b1d;
+  --calendar-head-bg: rgba(71, 70, 76, 0.5);
+  --calendar-cell-muted-bg: rgba(20, 19, 21, 0.3);
+  --calendar-day-muted: rgba(229, 225, 227, 0.4);
+  --calendar-event-blue-bg: rgba(219, 234, 254, 0.1);
+  --calendar-event-blue-border: #dbeafe;
+  --calendar-event-blue-text: #c8c5cd;
+  --calendar-event-red-bg: rgba(255, 218, 214, 0.1);
+  --calendar-event-red-border: #ba1a1a;
+  --calendar-event-red-text: #c8c5cd;
+  --calendar-shadow: rgba(0, 0, 0, 0.35);
+}
+
+.app-main {
+  min-width: 0;
+  min-height: 100vh;
+  padding: 24px;
+  overflow: auto;
+}
+
+.sidebar {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 24px 0;
+  gap: 4px;
+  background: var(--app-sidebar-bg);
+  border-right: 1px solid var(--app-border);
+}
+
+.sidebar__top {
+  display: grid;
+  gap: 24px;
+  padding: 0 16px 24px;
+}
+
+.sidebar__brand {
+  margin: 0;
+  padding: 0 8px;
+  color: var(--app-brand);
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.32px;
+}
+
+.sidebar__user {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-radius: 4px;
+  color: var(--app-text);
+  background: var(--app-user-bg);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.sidebar__nav {
+  flex: 1;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 0 8px;
+}
+
+.sidebar__actions {
+  display: grid;
+  gap: 4px;
+  margin: 0 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--app-border);
+}
+
+.sidebar__link,
+.sidebar__action {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 0;
+  color: var(--app-subtle);
+  background: transparent;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.24px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sidebar__link {
+  min-height: 44px;
+}
+
+.sidebar__link--active {
+  min-height: 40px;
+  color: var(--app-primary-text);
+  background: var(--app-primary);
+  border-left: 4px solid #745b00;
+  padding-left: 12px;
+}
+
+.sidebar__link svg,
+.sidebar__action svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sidebar__link--active svg {
+  width: 22px;
+}
+

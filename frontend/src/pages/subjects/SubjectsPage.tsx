@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { AxiosError } from 'axios'
-import { createSubject, deleteSubject, getSubjects, updateSubject } from '../../api/subjects'
 import { getAuthToken } from '../../api/authToken'
+import { getApiErrorMessage } from '../../api/errorMessage'
+import { createSubject, deleteSubject, getSubjects, updateSubject } from '../../api/subjects'
 import { ExportModal } from '../../components/export/ExportModal'
 import { ImportModal } from '../../components/export/ImportModal'
 import { SubjectForm } from '../../components/subjects/SubjectForm'
@@ -225,21 +225,9 @@ export function SubjectsPage() {
 }
 
 function getRequestErrorMessage(error: unknown) {
-  if (error instanceof AxiosError) {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      return 'Нужно войти в аккаунт, чтобы работать с предметами.'
-    }
-
-    if (error.response?.status && error.response.status >= 500) {
-      return 'Ошибка сервера. Попробуйте повторить запрос позже.'
-    }
-
-    const detail = error.response?.data?.detail
-
-    if (typeof detail === 'string') {
-      return detail
-    }
-  }
-
-  return DEFAULT_ERROR_MESSAGE
+  return getApiErrorMessage(error, {
+    unauthorized: 'Нужно войти в аккаунт, чтобы работать с предметами.',
+    server: 'Ошибка сервера. Попробуйте повторить запрос позже.',
+    fallback: DEFAULT_ERROR_MESSAGE,
+  })
 }

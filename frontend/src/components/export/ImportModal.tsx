@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { AxiosError } from 'axios'
 import { importUserData } from '../../api/dataTransfer'
+import { getApiErrorMessage } from '../../api/errorMessage'
 import type { ImportResult } from '../../types/dataTransfer'
 
 interface ImportModalProps {
@@ -145,35 +145,11 @@ function isEmptyImportResult(result: ImportResult) {
 }
 
 function getRequestErrorMessage(error: unknown) {
-  if (error instanceof AxiosError) {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      return 'Нужно войти в аккаунт, чтобы импортировать данные.'
-    }
-
-    if (error.response?.status === 404) {
-      return 'Эндпоинт импорта не найден. Проверьте, что backend запущен с актуальной версией API.'
-    }
-
-    if (error.response?.status === 400 || error.response?.status === 422) {
-      return getDetailMessage(error.response.data?.detail) ?? 'Неправильный формат Excel или структура файла.'
-    }
-
-    if (error.response?.status && error.response.status >= 500) {
-      return 'Ошибка сервера при импорте. Попробуйте позже.'
-    }
-  }
-
-  return DEFAULT_ERROR_MESSAGE
-}
-
-function getDetailMessage(detail: unknown) {
-  if (typeof detail === 'string') {
-    return detail
-  }
-
-  if (Array.isArray(detail) && detail.length > 0) {
-    return 'Проверьте файл: неверный формат данных или названия листов.'
-  }
-
-  return null
+  return getApiErrorMessage(error, {
+    unauthorized: 'Нужно войти в аккаунт, чтобы импортировать данные.',
+    notFound: 'Эндпоинт импорта не найден. Проверьте, что backend запущен с актуальной версией API.',
+    validation: 'Неправильный формат Excel или структура файла.',
+    server: 'Ошибка сервера при импорте. Попробуйте позже.',
+    fallback: DEFAULT_ERROR_MESSAGE,
+  })
 }

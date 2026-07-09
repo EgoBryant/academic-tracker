@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { AxiosError } from 'axios'
 import { exportUserData } from '../../api/dataTransfer'
+import { getApiErrorMessage } from '../../api/errorMessage'
 import type { ExportFormat } from '../../types/dataTransfer'
 
 interface ExportModalProps {
@@ -116,17 +116,9 @@ function downloadFile(file: Blob, fileName: string) {
 }
 
 function getRequestErrorMessage(error: unknown) {
-  if (error instanceof AxiosError) {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      return 'Нужно войти в аккаунт, чтобы экспортировать данные.'
-    }
-
-    const detail = error.response?.data?.detail
-
-    if (typeof detail === 'string') {
-      return detail
-    }
-  }
-
-  return DEFAULT_ERROR_MESSAGE
+  return getApiErrorMessage(error, {
+    unauthorized: 'Нужно войти в аккаунт, чтобы экспортировать данные.',
+    server: 'Ошибка сервера при экспорте. Попробуйте позже.',
+    fallback: DEFAULT_ERROR_MESSAGE,
+  })
 }

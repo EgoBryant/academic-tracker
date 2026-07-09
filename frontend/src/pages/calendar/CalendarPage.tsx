@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { AxiosError } from 'axios'
 import { createAssignment, deleteAssignment, getAssignments, updateAssignment } from '../../api/assignments'
+import { getApiErrorMessage } from '../../api/errorMessage'
 import { getSubjects } from '../../api/subjects'
 import type { Assignment, AssignmentPayload } from '../../types/assignment'
 import type { Subject } from '../../types/subject'
@@ -137,7 +137,7 @@ export function CalendarPage() {
     <section className="calendar-page">
       <header className="calendar-header">
         <h1>Календарь</h1>
-        <p>Отслеживание мероприятий и дедлайнов по учебе</p>
+        <p>Отслеживание мероприятий и дедлайнов по учёбе</p>
       </header>
 
       {isLoading ? (
@@ -192,7 +192,7 @@ export function CalendarPage() {
         </div>
       )}
 
-      <button className="calendar-fab" type="button" aria-label="Добавить дедлайн" onClick={openCreateModal}>
+      <button className="calendar-fab" type="button" aria-label="Добавить мероприятие" onClick={openCreateModal}>
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 5v14M5 12h14" />
         </svg>
@@ -225,8 +225,9 @@ function AssignmentModal({
   onDelete,
 }: AssignmentModalProps) {
   const initialDateTime = assignment ? parseDateTime(assignment.due_datetime) : new Date()
-  const initialSubjectId = assignment?.subject_id ?? subjects[0]?.subject_id ?? 0
+  const initialSubjectId = assignment?.subject_id ?? subjects[0]?.subject_id ?? ''
   const isViewing = mode === 'view' && assignment
+  const [validationError, setValidationError] = useState<string | null>(null)
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -235,12 +236,20 @@ function AssignmentModal({
     const date = String(formData.get('date') ?? '')
     const time = String(formData.get('time') ?? '')
     const subjectId = Number(formData.get('subject_id'))
-
-    await onSubmit({
+    const payload = {
       title: String(formData.get('title') ?? '').trim(),
       subject_id: subjectId,
       due_datetime: buildDueDateTime(date, time),
-    })
+    }
+    const nextError = validateAssignmentForm(payload.title, subjectId, date, time)
+
+    if (nextError) {
+      setValidationError(nextError)
+      return
+    }
+
+    setValidationError(null)
+    await onSubmit(payload)
   }
 
   return (
@@ -255,7 +264,7 @@ function AssignmentModal({
                 <path d="M8 2v4M16 2v4M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />
               </svg>
             </span>
-            <h2 id="assignment-modal-title">{isViewing ? 'Название мероприятия' : 'Добавление мероприятия'}</h2>
+            <h2 id="assignment-modal-title">{isViewing ? 'Просмотр мероприятия' : 'Добавление мероприятия'}</h2>
           </div>
           <button className="subject-modal__close" type="button" onClick={onClose} aria-label="Закрыть">
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -264,16 +273,16 @@ function AssignmentModal({
           </button>
         </header>
 
-        <form className="subject-modal__form" onSubmit={handleSubmit}>
+        <form className="subject-modal__form" onSubmit={handleSubmit} noValidate>
           <div className="subject-modal__body">
             <label className="subject-modal__field">
               <span>Название</span>
-              <input name="title" defaultValue={assignment?.title ?? ''} disabled={isSubmitting} required />
+              <input name="title" defaultValue={assignment?.title ?? ''} disabled={isSubmitting} />
             </label>
 
             <label className="subject-modal__field">
               <span>Предмет</span>
-              <select name="subject_id" defaultValue={initialSubjectId} disabled={isSubmitting || subjects.length === 0} required>
+              <select name="subject_id" defaultValue={initialSubjectId} disabled={isSubmitting || subjects.length === 0}>
                 {subjects.length === 0 ? (
                   <option value="">Предметы не найдены</option>
                 ) : (
@@ -289,28 +298,16 @@ function AssignmentModal({
             <div className="subject-modal__row">
               <label className="subject-modal__field">
                 <span>Дата</span>
-                <input
-                  name="date"
-                  type="date"
-                  defaultValue={formatDateInput(initialDateTime)}
-                  disabled={isSubmitting}
-                  required
-                />
+                <input name="date" type="date" defaultValue={formatDateInput(initialDateTime)} disabled={isSubmitting} />
               </label>
 
               <label className="subject-modal__field">
                 <span>Время</span>
-                <input
-                  name="time"
-                  type="time"
-                  defaultValue={formatTimeInput(initialDateTime)}
-                  disabled={isSubmitting}
-                  required
-                />
+                <input name="time" type="time" defaultValue={formatTimeInput(initialDateTime)} disabled={isSubmitting} />
               </label>
             </div>
 
-            {error && <p className="subject-modal__error">{error}</p>}
+            {(validationError || error) && <p className="subject-modal__error">{validationError ?? error}</p>}
           </div>
 
           <footer className="subject-modal__footer">
@@ -329,7 +326,7 @@ function AssignmentModal({
               </button>
             )}
             <button className="subject-modal__submit" type="submit" disabled={isSubmitting || subjects.length === 0}>
-              {isViewing ? 'Изменить' : 'Добавить'}
+              {isSubmitting ? 'Сохранение...' : isViewing ? 'Изменить' : 'Добавить'}
             </button>
           </footer>
         </form>
@@ -368,6 +365,26 @@ function buildCalendarDays(visibleDate: Date, assignments: Assignment[]) {
   })
 }
 
+function validateAssignmentForm(title: string, subjectId: number, date: string, time: string) {
+  if (title.length < 2) {
+    return 'Название мероприятия должно быть не короче 2 символов.'
+  }
+
+  if (!subjectId) {
+    return 'Выберите предмет для мероприятия.'
+  }
+
+  if (!date) {
+    return 'Выберите дату мероприятия.'
+  }
+
+  if (!time) {
+    return 'Выберите время мероприятия.'
+  }
+
+  return null
+}
+
 function getDateKey(date: Date) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -404,17 +421,9 @@ function getAssignmentTone(index: number) {
 }
 
 function getRequestErrorMessage(error: unknown) {
-  if (error instanceof AxiosError) {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      return 'Нужно войти в аккаунт, чтобы работать с мероприятиями.'
-    }
-
-    const detail = error.response?.data?.detail
-
-    if (typeof detail === 'string') {
-      return detail
-    }
-  }
-
-  return DEFAULT_ERROR_MESSAGE
+  return getApiErrorMessage(error, {
+    unauthorized: 'Нужно войти в аккаунт, чтобы работать с мероприятиями.',
+    server: 'Ошибка сервера. Попробуйте позже.',
+    fallback: DEFAULT_ERROR_MESSAGE,
+  })
 }

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
-import { AxiosError } from 'axios'
+import { getApiErrorMessage } from '../../api/errorMessage'
 import { createGrade, deleteGrade, getGrades, updateGrade } from '../../api/grades'
 import { getSubjects } from '../../api/subjects'
 import { ExportModal } from '../../components/export/ExportModal'
@@ -11,6 +11,7 @@ import type { Subject } from '../../types/subject'
 
 type GradeModalMode = 'create' | 'edit'
 
+const GRADES_PER_PAGE = 4
 const DEFAULT_ERROR_MESSAGE = 'Не удалось выполнить запрос. Попробуйте ещё раз.'
 
 export function SubjectDetailsPage() {
@@ -18,6 +19,7 @@ export function SubjectDetailsPage() {
   const subjectId = Number(id)
   const [subject, setSubject] = useState<Subject | null>(null)
   const [grades, setGrades] = useState<Grade[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
@@ -29,11 +31,12 @@ export function SubjectDetailsPage() {
   const [isExportModalOpen, setExportModalOpen] = useState(false)
   const [isImportModalOpen, setImportModalOpen] = useState(false)
 
-  useEffect(() => {
-    loadGrades()
-  }, [subjectId])
+  const totalPages = Math.max(1, Math.ceil(grades.length / GRADES_PER_PAGE))
+  const pageStart = (currentPage - 1) * GRADES_PER_PAGE
+  const visibleGrades = grades.slice(pageStart, pageStart + GRADES_PER_PAGE)
+  const subjectTitle = subject?.subject_name ?? 'Предмет'
 
-  const loadGrades = async () => {
+  const loadGrades = useCallback(async () => {
     if (!subjectId) {
       setError('Некорректный ID предмета.')
       setIsLoading(false)
@@ -51,7 +54,17 @@ export function SubjectDetailsPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [subjectId])
+
+  useEffect(() => {
+    loadGrades()
+  }, [loadGrades])
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
 
   const openCreateModal = () => {
     setModalMode('create')
@@ -90,6 +103,7 @@ export function SubjectDetailsPage() {
       } else {
         const createdGrade = await createGrade(subjectId, payload)
         setGrades((currentGrades) => [...currentGrades, createdGrade])
+        setCurrentPage(Math.max(1, Math.ceil((grades.length + 1) / GRADES_PER_PAGE)))
       }
 
       setGradeModalOpen(false)
@@ -119,8 +133,8 @@ export function SubjectDetailsPage() {
       <div className="subjects-panel">
         <header className="subjects-panel__header">
           <div>
-            <h1>{subject?.subject_name ?? 'Предмет'}</h1>
-            <p>Оценки по предмету {subject?.subject_name ?? id}</p>
+            <h1>{subjectTitle}</h1>
+            <p>Оценки по предмету {subject?.subject_name ?? ''}</p>
           </div>
 
           <button className="subjects-add-button" type="button" onClick={openCreateModal}>
@@ -133,7 +147,7 @@ export function SubjectDetailsPage() {
           <div className="subjects-state">Загрузка оценок...</div>
         ) : (
           <GradesTable
-            grades={grades}
+            grades={visibleGrades}
             deletingGradeId={deletingGradeId}
             onEdit={openEditModal}
             onDelete={handleDeleteGrade}
@@ -160,19 +174,34 @@ export function SubjectDetailsPage() {
           </div>
 
           <nav className="subjects-pagination" aria-label="Пагинация оценок">
-            <button className="subjects-page-arrow" type="button" disabled>
+            <button
+              className="subjects-page-arrow"
+              type="button"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            >
               ‹
             </button>
-            <button className="subjects-page-number subjects-page-number--active" type="button">
-              1
-            </button>
-            <button className="subjects-page-number" type="button">
-              2
-            </button>
-            <button className="subjects-page-number" type="button">
-              3
-            </button>
-            <button className="subjects-page-arrow" type="button">
+            {Array.from({ length: totalPages }, (_, index) => {
+              const pageNumber = index + 1
+
+              return (
+                <button
+                  className={`subjects-page-number${pageNumber === currentPage ? ' subjects-page-number--active' : ''}`}
+                  type="button"
+                  key={pageNumber}
+                  onClick={() => setCurrentPage(pageNumber)}
+                >
+                  {pageNumber}
+                </button>
+              )
+            })}
+            <button
+              className="subjects-page-arrow"
+              type="button"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+            >
               ›
             </button>
           </nav>
@@ -395,23 +424,11 @@ function validateGradeForm(payload: GradePayload) {
 }
 
 function getRequestErrorMessage(error: unknown) {
-  if (error instanceof AxiosError) {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      return 'Нужно войти в аккаунт, чтобы работать с оценками.'
-    }
-
-    const detail = error.response?.data?.detail
-
-    if (typeof detail === 'string') {
-      return detail
-    }
-
-    if (error.response?.status && error.response.status >= 500) {
-      return 'Ошибка сервера. Попробуйте позже.'
-    }
-  }
-
-  return DEFAULT_ERROR_MESSAGE
+  return getApiErrorMessage(error, {
+    unauthorized: 'Нужно войти в аккаунт, чтобы работать с оценками.',
+    server: 'Ошибка сервера. Попробуйте позже.',
+    fallback: DEFAULT_ERROR_MESSAGE,
+  })
 }
 
 function formatDate(date: string) {
