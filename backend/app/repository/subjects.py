@@ -1,8 +1,12 @@
 from typing import List, Optional
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import Subject
+
+# Импортируем модели базы данных
+from app.models.subject import Subject
+from app.models.grade import Grade
 from app.schemas.subject import SubjectCreate
+
 
 class SubjectRepository:
     def __init__(self, db: AsyncSession):
@@ -12,7 +16,7 @@ class SubjectRepository:
         """Получить все предметы конкретного пользователя."""
         query = select(Subject).where(Subject.user_id == user_id).order_by(Subject.subject_id)
         result = await self.db.execute(query)
-        return result.scalars().all()
+        return list(result.scalars().all())
 
     async def get_by_id(self, subject_id: int, user_id: int) -> Optional[Subject]:
         """Получить конкретный предмет пользователя по ID."""
@@ -27,22 +31,49 @@ class SubjectRepository:
         return result.scalar_one_or_none()
 
     async def create(self, subject_in: SubjectCreate, user_id: int) -> Subject:
-        """Создать предмет с привязкой к текущему пользователю."""
+        """Создать предмет в сессии (без фиксации коммита)."""
         db_subject = Subject(**subject_in.model_dump(), user_id=user_id)
         self.db.add(db_subject)
-        await self.db.commit()
-        await self.db.refresh(db_subject)
+        # Отправляем изменения в базу данных, чтобы получить автоматически сгенерированный ID,
+        # но транзакция остается открытой — её зафиксирует сервис.
+        await self.db.flush()
         return db_subject
 
     async def update(self, db_subject: Subject, update_data: dict) -> Subject:
-        """Обновить поля предмета."""
+        """Обновить поля предмета в сессии (без фиксации коммита)."""
         for key, value in update_data.items():
             setattr(db_subject, key, value)
-        await self.db.commit()
-        await self.db.refresh(db_subject)
+        await self.db.flush()
         return db_subject
 
     async def delete(self, db_subject: Subject) -> None:
-        """Удалить предмет."""
+        """Удалить предмет из сессии (без фиксации коммита)."""
         await self.db.delete(db_subject)
+        await self.db.flush()
+
+    # --- МЕТОДЫ ДЛЯ РАСЧЁТА СРЕДНЕГО БАЛЛА (АГРЕГАЦИЯ И ОБНОВЛЕНИЕ) ---
+
+    async def get_grade_values_by_subject(self, subject_id: int) -> List[str]:
+        """Получить список строковых значений всех оценок по конкретному предмету."""
+        query = select(Grade.grade_value).where(Grade.subject_id == subject_id)
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+
+    async def update_average_field(self, subject_id: int, avg_value: float) -> None:
+        """Обновить колонку average_grade у предмета напрямую через UPDATE-запрос."""
+        update_query = (
+            update(Subject)
+            .where(Subject.subject_id == subject_id)
+            .values(average_grade=avg_value)
+        )
+        await self.db.execute(update_query)
+        await self.db.flush()
+
+
+    async def commit(self) -> None:
+        """Фиксация текущей транзакции в БД."""
         await self.db.commit()
+
+    async def refresh(self, instance: any) -> None:
+        """Обновление состояния объекта актуальными данными из БД."""
+        await self.db.refresh(instance)

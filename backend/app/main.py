@@ -1,48 +1,43 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Импортируем роутеры из слоя API
+# Импорты движка БД и роутеров
+from app.core.database import close_database_connection
 from app.api.auth import router as auth_router
 from app.api.subjects import router as subjects_router
-from app.api.grade import router as grades_router
 from app.api.assignments import router as assignments_router
 from app.api.export_import import router as export_import_router
-# Инициализируем приложение FastAPI
+
+# 1. Определяем логику жизненного цикла приложения
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield 
+    await close_database_connection()
+
+
+# 2. Передаем lifespan в инициализацию FastAPI
 app = FastAPI(
-    title="Student Dashboard API",
-    description="Бэкенд-система с JWT-авторизацией для учета предметов, заданий и оценок",
+    title="Веб-трекер успеваемости и долгов",
     version="1.0.0",
+    lifespan=lifespan  # <-- Подключаем здесь
 )
 
-# Настройка CORS (Cross-Origin Resource Sharing)
-# Необходима для того, чтобы ваш React-фронтенд или мобильное приложение могли слать запросы к API
-origins = [
-    "http://localhost:3000",  # Локальный порт React
-    "http://localhost:5173",  # Локальный порт Vite / React
-    "*",                      # На этапе разработки можно временно разрешить все источники
-]
-
+# Настройка CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Разрешаем все HTTP-методы (GET, POST, PUT, DELETE)
-    allow_headers=["*"],  # Разрешаем все заголовки (включая Authorization для JWT)
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Подключаем роутеры
-# Так как префиксы (/v1/auth и /v1/subjects) мы уже жестко зашили внутри самих файлов роутеров,
-# здесь мы просто регистрируем модули в приложении.
+# Подключение роутеров
 app.include_router(auth_router)
 app.include_router(subjects_router)
 app.include_router(assignments_router)
-# Там, где подключаются остальные роутеры (auth, subjects):
-app.include_router(grades_router)
 app.include_router(export_import_router)
-# Корневой эндпоинт для быстрой проверки работоспособности (Health Check)
-@app.get("/", tags=["Root"])
+
+@app.get("/")
 async def root():
-    return {
-        "status": "healthy",
-        "message": "Бэкенд успешно запущен. Документация доступна по адресу /docs"
-    }
+    return {"message": "API Веб-трекера успеваемости работает стабильно"}

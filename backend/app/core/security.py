@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from passlib.context import CryptContext
 
-from app.core.config import settings  # Твой Pydantic-конфиг
+from app.core.config import get_settings  
 from app.core.database import get_db
 from app.models.user import User
 from app.repository.user import UserRepository
@@ -13,6 +13,7 @@ from app.repository.user import UserRepository
 # Настройка passlib для bcrypt и определение схемы OAuth2
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+settings = get_settings()
 
 def get_password_hash(password: str) -> str:
     """Хэширование пароля с помощью bcrypt."""

@@ -8,10 +8,19 @@ from app.models.user import User
 from app.schemas.assignment import AssignmentCreate, AssignmentUpdate, AssignmentResponse
 from app.service.assignment import AssignmentService
 
+from app.repository.assignment import AssignmentRepository
+from app.repository.subjects import SubjectRepository
+
 router = APIRouter(prefix="/api/assignments", tags=["Assignments"])
 
-def get_assignment_service(db: AsyncSession = Depends(get_db)) -> AssignmentService:
-    return AssignmentService(db)
+
+# ОБНОВЛЕННАЯ ФУНКЦИЯ-ФАБРИКА
+async def get_assignment_service(db: AsyncSession = Depends(get_db)) -> AssignmentService:
+    repo = AssignmentRepository(db)
+    subject_repo = SubjectRepository(db)
+    return AssignmentService(repo=repo, subject_repo=subject_repo)
+
+
 
 @router.get("/", response_model=List[AssignmentResponse])
 async def get_all_assignments(
@@ -19,9 +28,9 @@ async def get_all_assignments(
     service: AssignmentService = Depends(get_assignment_service)
 ):
     """Получить все дедлайны пользователя для календаря"""
-    # Возвращаем пустой список [], а не None, чтобы не было ошибки валидации
     assignments = await service.get_user_assignments(current_user.user_id)
     return assignments if assignments else []
+
 
 @router.post("/", response_model=AssignmentResponse, status_code=status.HTTP_201_CREATED)
 async def create_assignment(
@@ -32,6 +41,7 @@ async def create_assignment(
     """Создать новое задание/дедлайн"""
     return await service.create_assignment(assignment_in, current_user.user_id)
 
+
 @router.put("/{assignment_id}", response_model=AssignmentResponse)
 async def update_assignment(
     assignment_id: int,
@@ -41,6 +51,7 @@ async def update_assignment(
 ):
     """Редактировать существующее задание"""
     return await service.update_assignment(assignment_id, assignment_in, current_user.user_id)
+
 
 @router.delete("/{assignment_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_assignment(
