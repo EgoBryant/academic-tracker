@@ -6,7 +6,7 @@ import { AssignmentModal } from '../../components/calendar/AssignmentModal'
 import type { AssignmentModalMode } from '../../components/calendar/AssignmentModal'
 import type { Assignment, AssignmentPayload } from '../../types/assignment'
 import type { Subject } from '../../types/subject'
-import { buildCalendarDays, getAssignmentTone, parseDateTime } from '../../utils/calendar'
+import { buildCalendarDays, compareAssignmentsByDueDate, getAssignmentTone, parseDateTime } from '../../utils/calendar'
 
 const DEFAULT_ERROR_MESSAGE = 'Не удалось выполнить запрос. Попробуйте ещё раз.'
 const weekDays = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС']
@@ -38,7 +38,7 @@ export function CalendarPage() {
       setIsLoading(true)
       setError(null)
       const [loadedAssignments, loadedSubjects] = await Promise.all([getAssignments(), getSubjects()])
-      setAssignments(loadedAssignments)
+      setAssignments([...loadedAssignments].sort(compareAssignmentsByDueDate))
       setSubjects(loadedSubjects)
     } catch (error) {
       setError(getCalendarErrorMessage(error))
@@ -79,13 +79,15 @@ export function CalendarPage() {
       if (modalMode === 'view' && selectedAssignment) {
         const updatedAssignment = await updateAssignment(selectedAssignment.assignment_id, payload)
         setAssignments((currentAssignments) =>
-          currentAssignments.map((assignment) =>
-            assignment.assignment_id === updatedAssignment.assignment_id ? updatedAssignment : assignment,
-          ),
+          currentAssignments
+            .map((assignment) =>
+              assignment.assignment_id === updatedAssignment.assignment_id ? updatedAssignment : assignment,
+            )
+            .sort(compareAssignmentsByDueDate),
         )
       } else {
         const createdAssignment = await createAssignment(payload)
-        setAssignments((currentAssignments) => [...currentAssignments, createdAssignment])
+        setAssignments((currentAssignments) => [...currentAssignments, createdAssignment].sort(compareAssignmentsByDueDate))
       }
 
       setModalOpen(false)

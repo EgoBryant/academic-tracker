@@ -7,6 +7,7 @@ import { SubjectForm } from '../../components/subjects/SubjectForm'
 import { SubjectTable } from '../../components/subjects/SubjectTable'
 import type { Subject, SubjectPayload } from '../../types/subject'
 import { getAuthToken } from '../../utils/authStorage'
+import { mergeSubjectEndDates, removeSubjectEndDate, saveSubjectEndDate } from '../../utils/subjectEndDates'
 
 type SubjectModalMode = 'create' | 'edit'
 
@@ -51,7 +52,7 @@ export function SubjectsPage() {
       setIsLoading(true)
       setError(null)
       const loadedSubjects = await getSubjects()
-      setSubjects(loadedSubjects)
+      setSubjects(mergeSubjectEndDates(loadedSubjects))
     } catch (error) {
       setError(getApiErrorMessage(error, SUBJECT_ERROR_MESSAGES))
     } finally {
@@ -90,14 +91,18 @@ export function SubjectsPage() {
 
       if (modalMode === 'edit' && selectedSubject) {
         const updatedSubject = await updateSubject(selectedSubject.subject_id, payload)
+        const nextSubject = { ...updatedSubject, end_date: payload.end_date }
+        saveSubjectEndDate(updatedSubject.subject_id, payload.end_date ?? '')
         setSubjects((currentSubjects) =>
           currentSubjects.map((subject) =>
-            subject.subject_id === updatedSubject.subject_id ? updatedSubject : subject,
+            subject.subject_id === nextSubject.subject_id ? nextSubject : subject,
           ),
         )
       } else {
         const createdSubject = await createSubject(payload)
-        setSubjects((currentSubjects) => [...currentSubjects, createdSubject])
+        const nextSubject = { ...createdSubject, end_date: payload.end_date }
+        saveSubjectEndDate(createdSubject.subject_id, payload.end_date ?? '')
+        setSubjects((currentSubjects) => [...currentSubjects, nextSubject])
         setCurrentPage(Math.max(1, Math.ceil((subjects.length + 1) / SUBJECTS_PER_PAGE)))
       }
 
@@ -115,6 +120,7 @@ export function SubjectsPage() {
       setDeletingSubjectId(subject.subject_id)
       setError(null)
       await deleteSubject(subject.subject_id)
+      removeSubjectEndDate(subject.subject_id)
       setSubjects((currentSubjects) =>
         currentSubjects.filter((currentSubject) => currentSubject.subject_id !== subject.subject_id),
       )

@@ -19,7 +19,7 @@ export function buildCalendarDays(visibleDate: Date, assignments: Assignment[]) 
   const todayKey = getDateKey(new Date())
   const assignmentsByDate = assignments.reduce<Record<string, Assignment[]>>((result, assignment) => {
     const dateKey = getDateKey(parseDateTime(assignment.due_datetime))
-    result[dateKey] = [...(result[dateKey] ?? []), assignment]
+    result[dateKey] = [...(result[dateKey] ?? []), assignment].sort(compareAssignmentsByDueDate)
     return result
   }, {})
 
@@ -71,4 +71,8 @@ export function buildDueDateTime(date: string, time: string) {
 export function getAssignmentTone(index: number) {
   const tones = ['yellow', 'blue', 'red'] as const
   return tones[index % tones.length]
+}
+
+export function compareAssignmentsByDueDate(firstAssignment: Assignment, secondAssignment: Assignment) {
+  return parseDateTime(firstAssignment.due_datetime).getTime() - parseDateTime(secondAssignment.due_datetime).getTime()
 }

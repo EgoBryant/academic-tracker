@@ -24,7 +24,8 @@ export function SubjectForm({ initialSubject, isSubmitting = false, error, onClo
     const formData = new FormData(event.currentTarget)
     const subjectName = String(formData.get('subject_name') ?? '').trim()
     const teacherName = String(formData.get('teacher_name') ?? '').trim()
-    const nextError = validateSubjectForm(subjectName, teacherName)
+    const endDate = String(formData.get('end_date') ?? '')
+    const nextError = validateSubjectForm(subjectName, teacherName, endDate)
 
     if (nextError) {
       setValidationError(nextError)
@@ -37,6 +38,7 @@ export function SubjectForm({ initialSubject, isSubmitting = false, error, onClo
       subject_name: subjectName,
       teacher_name: teacherName,
       color: initialSubject?.color || DEFAULT_SUBJECT_COLOR,
+      end_date: endDate,
     })
   }
 
@@ -91,6 +93,11 @@ export function SubjectForm({ initialSubject, isSubmitting = false, error, onClo
               />
             </label>
 
+            <label className="subject-modal__field">
+              <span>Дата окончания</span>
+              <input name="end_date" type="date" defaultValue={initialSubject?.end_date ?? ''} disabled={isSubmitting} />
+            </label>
+
             {(validationError || error) && <p className="subject-modal__error">{validationError ?? error}</p>}
           </div>
 
@@ -108,7 +115,7 @@ export function SubjectForm({ initialSubject, isSubmitting = false, error, onClo
   )
 }
 
-function validateSubjectForm(subjectName: string, teacherName: string) {
+function validateSubjectForm(subjectName: string, teacherName: string, endDate: string) {
   if (subjectName.length < 2) {
     return 'Название предмета должно быть не короче 2 символов.'
   }
@@ -131,6 +138,10 @@ function validateSubjectForm(subjectName: string, teacherName: string) {
 
   if (!/[A-Za-zА-Яа-яЁё]/.test(teacherName)) {
     return 'Укажите имя преподавателя.'
+  }
+
+  if (!endDate) {
+    return 'Выберите дату окончания предмета.'
   }
 
   return null
