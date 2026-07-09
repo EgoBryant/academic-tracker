@@ -10,6 +10,8 @@ interface ImportModalProps {
 }
 
 const DEFAULT_ERROR_MESSAGE = 'Не удалось импортировать данные. Попробуйте ещё раз.'
+const EMPTY_IMPORT_MESSAGE =
+  'Данные не найдены. Для Excel нужны листы Subjects, Grades и Assignments с правильными заголовками.'
 
 export function ImportModal({ onClose, onImported }: ImportModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -25,10 +27,24 @@ export function ImportModal({ onClose, onImported }: ImportModalProps) {
       return
     }
 
+    const validationError = validateImportFile(selectedFile)
+
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
     try {
       setSubmitting(true)
       setError(null)
       const importResult = await importUserData(selectedFile)
+
+      if (isEmptyImportResult(importResult)) {
+        setResult(null)
+        setError(EMPTY_IMPORT_MESSAGE)
+        return
+      }
+
       setResult(importResult)
       onImported?.()
     } catch (requestError) {
@@ -62,7 +78,7 @@ export function ImportModal({ onClose, onImported }: ImportModalProps) {
           </button>
         </header>
 
-        <form className="subject-modal__form" onSubmit={handleSubmit}>
+        <form className="subject-modal__form" onSubmit={handleSubmit} noValidate>
           <div className="subject-modal__body">
             <label className="subject-modal__field">
               <span>Файл</span>
@@ -70,11 +86,17 @@ export function ImportModal({ onClose, onImported }: ImportModalProps) {
                 type="file"
                 accept=".xlsx,.zip,.csv"
                 disabled={isSubmitting}
-                onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
+                onChange={(event) => {
+                  setSelectedFile(event.target.files?.[0] ?? null)
+                  setError(null)
+                  setResult(null)
+                }}
               />
             </label>
 
-            <p className="subject-modal__hint">Можно загрузить Excel-файл или ZIP/CSV-архив с данными.</p>
+            <p className="subject-modal__hint">
+              XLSX должен содержать листы Subjects, Grades и Assignments. ZIP должен содержать CSV-файлы экспорта.
+            </p>
 
             {error && <p className="subject-modal__error">{error}</p>}
 
@@ -102,18 +124,56 @@ export function ImportModal({ onClose, onImported }: ImportModalProps) {
   )
 }
 
+function validateImportFile(file: File) {
+  const fileName = file.name.toLowerCase()
+  const isAllowedFile = fileName.endsWith('.xlsx') || fileName.endsWith('.zip') || fileName.endsWith('.csv')
+
+  if (!isAllowedFile) {
+    return 'Неправильный формат файла. Загрузите .xlsx, .zip или .csv.'
+  }
+
+  return null
+}
+
+function isEmptyImportResult(result: ImportResult) {
+  return (
+    result.imported_subjects === 0 &&
+    result.imported_grades === 0 &&
+    result.imported_assignments === 0 &&
+    result.logs.length === 0
+  )
+}
+
 function getRequestErrorMessage(error: unknown) {
   if (error instanceof AxiosError) {
     if (error.response?.status === 401 || error.response?.status === 403) {
       return 'Нужно войти в аккаунт, чтобы импортировать данные.'
     }
 
-    const detail = error.response?.data?.detail
+    if (error.response?.status === 404) {
+      return 'Эндпоинт импорта не найден. Проверьте, что backend запущен с актуальной версией API.'
+    }
 
-    if (typeof detail === 'string') {
-      return detail
+    if (error.response?.status === 400 || error.response?.status === 422) {
+      return getDetailMessage(error.response.data?.detail) ?? 'Неправильный формат Excel или структура файла.'
+    }
+
+    if (error.response?.status && error.response.status >= 500) {
+      return 'Ошибка сервера при импорте. Попробуйте позже.'
     }
   }
 
   return DEFAULT_ERROR_MESSAGE
+}
+
+function getDetailMessage(detail: unknown) {
+  if (typeof detail === 'string') {
+    return detail
+  }
+
+  if (Array.isArray(detail) && detail.length > 0) {
+    return 'Проверьте файл: неверный формат данных или названия листов.'
+  }
+
+  return null
 }

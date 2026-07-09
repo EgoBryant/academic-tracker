@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AxiosError } from 'axios'
 import { loginUser, registerUser } from '../../api/auth'
-import { setAuthToken } from '../../api/authToken'
+import { setAuthToken, setAuthUser } from '../../api/authToken'
 
 export function RegisterPage() {
   const navigate = useNavigate()
@@ -34,6 +34,12 @@ export function RegisterPage() {
     const fullName = String(formData.get('full_name') ?? '').trim()
     const email = String(formData.get('email') ?? '').trim()
     const password = String(formData.get('password') ?? '')
+    const validationError = validateRegisterForm(fullName, email, password)
+
+    if (validationError) {
+      setError(validationError)
+      return
+    }
 
     try {
       setSubmitting(true)
@@ -41,6 +47,7 @@ export function RegisterPage() {
       await registerUser({ full_name: fullName, email, password })
       const loginResponse = await loginUser(email, password)
       setAuthToken(loginResponse.access_token)
+      setAuthUser(loginResponse.user)
       navigate('/subjects')
     } catch (requestError) {
       setError(getAuthErrorMessage(requestError))
@@ -88,7 +95,7 @@ export function RegisterPage() {
             </button>
           </div>
 
-          <form className="login-card login-card--register" onSubmit={handleSubmit}>
+          <form className="login-card login-card--register" onSubmit={handleSubmit} noValidate>
             <label className="login-field">
               <span>ФИО</span>
               <span className="login-input-wrap">
@@ -96,7 +103,7 @@ export function RegisterPage() {
                   <circle cx="12" cy="8" r="3.25" />
                   <path d="M5 20a7 7 0 0 1 14 0" />
                 </svg>
-                <input name="full_name" placeholder="Иванов Иван Иванович" required />
+                <input name="full_name" placeholder="Ваше имя" autoComplete="name" />
               </span>
             </label>
 
@@ -107,7 +114,7 @@ export function RegisterPage() {
                   <path d="M4 6h16v12H4V6Z" />
                   <path d="m4 7 8 6 8-6" />
                 </svg>
-                <input name="email" type="email" placeholder="ivan@example.ru" required />
+                <input name="email" type="email" placeholder="ivan@example.ru" autoComplete="email" />
               </span>
             </label>
 
@@ -119,13 +126,7 @@ export function RegisterPage() {
                   <path d="M8 10V7a4 4 0 0 1 8 0v3" />
                   <path d="M12 14.5v2" />
                 </svg>
-                <input name="password" type="password" placeholder="••••••••" required minLength={8} />
-                <button className="login-eye" type="button" aria-label="Показать пароль">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
-                    <circle cx="12" cy="12" r="2.5" />
-                  </svg>
-                </button>
+                <input name="password" type="password" placeholder="••••••••" autoComplete="new-password" />
               </span>
             </label>
 
@@ -147,10 +148,42 @@ export function RegisterPage() {
   )
 }
 
+function validateRegisterForm(fullName: string, email: string, password: string) {
+  if (fullName.length < 2) {
+    return 'Введите ФИО минимум из 2 символов.'
+  }
+
+  if (!isValidEmail(email)) {
+    return 'Введите корректный email.'
+  }
+
+  if (password.length < 8) {
+    return 'Пароль должен быть не короче 8 символов.'
+  }
+
+  return null
+}
+
 function getAuthErrorMessage(error: unknown) {
-  if (error instanceof AxiosError && typeof error.response?.data?.detail === 'string') {
-    return error.response.data.detail
+  if (error instanceof AxiosError) {
+    if (error.response?.status === 400 || error.response?.status === 409) {
+      return typeof error.response.data?.detail === 'string'
+        ? error.response.data.detail
+        : 'Проверьте данные регистрации.'
+    }
+
+    if (typeof error.response?.data?.detail === 'string') {
+      return error.response.data.detail
+    }
+
+    if (error.response?.status && error.response.status >= 500) {
+      return 'Ошибка сервера. Попробуйте позже.'
+    }
   }
 
   return 'Не удалось создать аккаунт. Проверьте данные и попробуйте ещё раз.'
+}
+
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }

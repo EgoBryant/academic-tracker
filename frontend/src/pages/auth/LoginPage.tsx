@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AxiosError } from 'axios'
 import { loginUser } from '../../api/auth'
-import { setAuthToken } from '../../api/authToken'
+import { setAuthToken, setAuthUser } from '../../api/authToken'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -33,12 +33,19 @@ export function LoginPage() {
     const formData = new FormData(event.currentTarget)
     const email = String(formData.get('email') ?? '').trim()
     const password = String(formData.get('password') ?? '')
+    const validationError = validateLoginForm(email, password)
+
+    if (validationError) {
+      setError(validationError)
+      return
+    }
 
     try {
       setSubmitting(true)
       setError(null)
       const loginResponse = await loginUser(email, password)
       setAuthToken(loginResponse.access_token)
+      setAuthUser(loginResponse.user)
       navigate('/subjects')
     } catch (requestError) {
       setError(getAuthErrorMessage(requestError))
@@ -86,7 +93,7 @@ export function LoginPage() {
             </Link>
           </div>
 
-          <form className="login-card" onSubmit={handleSubmit}>
+          <form className="login-card" onSubmit={handleSubmit} noValidate>
             <label className="login-field">
               <span>EMAIL</span>
               <span className="login-input-wrap">
@@ -94,7 +101,7 @@ export function LoginPage() {
                   <path d="M4 6h16v12H4V6Z" />
                   <path d="m4 7 8 6 8-6" />
                 </svg>
-                <input name="email" type="email" placeholder="ivan@example.ru" required />
+                <input name="email" type="email" placeholder="ivan@example.ru" autoComplete="email" />
               </span>
             </label>
 
@@ -106,13 +113,7 @@ export function LoginPage() {
                   <path d="M8 10V7a4 4 0 0 1 8 0v3" />
                   <path d="M12 14.5v2" />
                 </svg>
-                <input name="password" type="password" placeholder="••••••••" required />
-                <button className="login-eye" type="button" aria-label="Показать пароль">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
-                    <circle cx="12" cy="12" r="2.5" />
-                  </svg>
-                </button>
+                <input name="password" type="password" placeholder="••••••••" autoComplete="current-password" />
               </span>
             </label>
 
@@ -144,10 +145,40 @@ export function LoginPage() {
   )
 }
 
+function validateLoginForm(email: string, password: string) {
+  if (!email) {
+    return 'Введите email.'
+  }
+
+  if (!isValidEmail(email)) {
+    return 'Введите корректный email.'
+  }
+
+  if (!password) {
+    return 'Введите пароль.'
+  }
+
+  return null
+}
+
 function getAuthErrorMessage(error: unknown) {
-  if (error instanceof AxiosError && typeof error.response?.data?.detail === 'string') {
-    return error.response.data.detail
+  if (error instanceof AxiosError) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      return 'Неверный email или пароль.'
+    }
+
+    if (typeof error.response?.data?.detail === 'string') {
+      return error.response.data.detail
+    }
+
+    if (error.response?.status && error.response.status >= 500) {
+      return 'Ошибка сервера. Попробуйте позже.'
+    }
   }
 
   return 'Не удалось войти. Проверьте email и пароль.'
+}
+
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }

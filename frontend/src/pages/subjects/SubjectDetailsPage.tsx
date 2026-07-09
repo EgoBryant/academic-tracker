@@ -3,15 +3,20 @@ import type { FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { AxiosError } from 'axios'
 import { createGrade, deleteGrade, getGrades, updateGrade } from '../../api/grades'
+import { getSubjects } from '../../api/subjects'
 import { ExportModal } from '../../components/export/ExportModal'
 import { ImportModal } from '../../components/export/ImportModal'
 import type { Grade, GradePayload } from '../../types/grade'
+import type { Subject } from '../../types/subject'
 
 type GradeModalMode = 'create' | 'edit'
+
+const DEFAULT_ERROR_MESSAGE = 'Не удалось выполнить запрос. Попробуйте ещё раз.'
 
 export function SubjectDetailsPage() {
   const { id } = useParams()
   const subjectId = Number(id)
+  const [subject, setSubject] = useState<Subject | null>(null)
   const [grades, setGrades] = useState<Grade[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -38,7 +43,8 @@ export function SubjectDetailsPage() {
     try {
       setIsLoading(true)
       setError(null)
-      const loadedGrades = await getGrades(subjectId)
+      const [loadedGrades, loadedSubjects] = await Promise.all([getGrades(subjectId), getSubjects()])
+      setSubject(loadedSubjects.find((loadedSubject) => loadedSubject.subject_id === subjectId) ?? null)
       setGrades(loadedGrades)
     } catch (requestError) {
       setError(getRequestErrorMessage(requestError))
@@ -113,8 +119,8 @@ export function SubjectDetailsPage() {
       <div className="subjects-panel">
         <header className="subjects-panel__header">
           <div>
-            <h1>{id ?? 'Предмет'}</h1>
-            <p>Оценки по предмету {id}</p>
+            <h1>{subject?.subject_name ?? 'Предмет'}</h1>
+            <p>Оценки по предмету {subject?.subject_name ?? id}</p>
           </div>
 
           <button className="subjects-add-button" type="button" onClick={openCreateModal}>
@@ -289,16 +295,26 @@ interface GradeFormProps {
 
 function GradeForm({ initialGrade, isSubmitting = false, error, onClose, onSubmit }: GradeFormProps) {
   const isEditing = Boolean(initialGrade)
+  const [validationError, setValidationError] = useState<string | null>(null)
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     const formData = new FormData(event.currentTarget)
-    await onSubmit({
+    const payload = {
       grade_value: String(formData.get('grade_value') ?? '').trim(),
       description: String(formData.get('description') ?? '').trim(),
       graded_at: String(formData.get('graded_at') ?? '').trim(),
-    })
+    }
+    const nextError = validateGradeForm(payload)
+
+    if (nextError) {
+      setValidationError(nextError)
+      return
+    }
+
+    setValidationError(null)
+    await onSubmit(payload)
   }
 
   return (
@@ -323,24 +339,29 @@ function GradeForm({ initialGrade, isSubmitting = false, error, onClose, onSubmi
           </button>
         </header>
 
-        <form className="subject-modal__form" onSubmit={handleSubmit}>
+        <form className="subject-modal__form" onSubmit={handleSubmit} noValidate>
           <div className="subject-modal__body">
             <label className="subject-modal__field">
               <span>Оценка</span>
-              <input name="grade_value" defaultValue={initialGrade?.grade_value ?? ''} required />
+              <input name="grade_value" defaultValue={initialGrade?.grade_value ?? ''} disabled={isSubmitting} />
             </label>
 
             <label className="subject-modal__field">
               <span>Описание</span>
-              <input name="description" defaultValue={initialGrade?.description ?? ''} />
+              <input name="description" defaultValue={initialGrade?.description ?? ''} disabled={isSubmitting} />
             </label>
 
             <label className="subject-modal__field">
               <span>Дата</span>
-              <input name="graded_at" type="date" defaultValue={initialGrade?.graded_at ?? getTodayDate()} required />
+              <input
+                name="graded_at"
+                type="date"
+                defaultValue={initialGrade?.graded_at ?? getTodayDate()}
+                disabled={isSubmitting}
+              />
             </label>
 
-            {error && <p className="subject-modal__error">{error}</p>}
+            {(validationError || error) && <p className="subject-modal__error">{validationError ?? error}</p>}
           </div>
 
           <footer className="subject-modal__footer">
@@ -357,6 +378,22 @@ function GradeForm({ initialGrade, isSubmitting = false, error, onClose, onSubmi
   )
 }
 
+function validateGradeForm(payload: GradePayload) {
+  if (!payload.grade_value) {
+    return 'Введите оценку.'
+  }
+
+  if (!['2', '3', '4', '5'].includes(payload.grade_value)) {
+    return 'Оценка должна быть 2, 3, 4 или 5.'
+  }
+
+  if (!payload.graded_at) {
+    return 'Выберите дату оценки.'
+  }
+
+  return null
+}
+
 function getRequestErrorMessage(error: unknown) {
   if (error instanceof AxiosError) {
     if (error.response?.status === 401 || error.response?.status === 403) {
@@ -368,9 +405,13 @@ function getRequestErrorMessage(error: unknown) {
     if (typeof detail === 'string') {
       return detail
     }
+
+    if (error.response?.status && error.response.status >= 500) {
+      return 'Ошибка сервера. Попробуйте позже.'
+    }
   }
 
-  return 'Не удалось выполнить запрос. Попробуйте ещё раз.'
+  return DEFAULT_ERROR_MESSAGE
 }
 
 function formatDate(date: string) {

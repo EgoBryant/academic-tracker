@@ -10,10 +10,12 @@ import type { Subject, SubjectPayload } from '../../types/subject'
 
 type SubjectModalMode = 'create' | 'edit'
 
+const SUBJECTS_PER_PAGE = 4
 const DEFAULT_ERROR_MESSAGE = 'Не удалось выполнить запрос. Попробуйте ещё раз.'
 
 export function SubjectsPage() {
   const [subjects, setSubjects] = useState<Subject[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
@@ -25,9 +27,19 @@ export function SubjectsPage() {
   const [isExportModalOpen, setExportModalOpen] = useState(false)
   const [isImportModalOpen, setImportModalOpen] = useState(false)
 
+  const totalPages = Math.max(1, Math.ceil(subjects.length / SUBJECTS_PER_PAGE))
+  const pageStart = (currentPage - 1) * SUBJECTS_PER_PAGE
+  const visibleSubjects = subjects.slice(pageStart, pageStart + SUBJECTS_PER_PAGE)
+
   useEffect(() => {
     loadSubjects()
   }, [])
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
 
   const loadSubjects = async () => {
     try {
@@ -81,6 +93,7 @@ export function SubjectsPage() {
       } else {
         const createdSubject = await createSubject(payload)
         setSubjects((currentSubjects) => [...currentSubjects, createdSubject])
+        setCurrentPage(Math.max(1, Math.ceil((subjects.length + 1) / SUBJECTS_PER_PAGE)))
       }
 
       setSubjectModalOpen(false)
@@ -125,7 +138,7 @@ export function SubjectsPage() {
           <div className="subjects-state">Загрузка предметов...</div>
         ) : (
           <SubjectTable
-            subjects={subjects}
+            subjects={visibleSubjects}
             deletingSubjectId={deletingSubjectId}
             onEdit={openEditModal}
             onDelete={handleDeleteSubject}
@@ -162,19 +175,34 @@ export function SubjectsPage() {
           </div>
 
           <nav className="subjects-pagination" aria-label="Пагинация">
-            <button className="subjects-page-arrow" type="button" disabled>
+            <button
+              className="subjects-page-arrow"
+              type="button"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            >
               ‹
             </button>
-            <button className="subjects-page-number subjects-page-number--active" type="button">
-              1
-            </button>
-            <button className="subjects-page-number" type="button">
-              2
-            </button>
-            <button className="subjects-page-number" type="button">
-              3
-            </button>
-            <button className="subjects-page-arrow" type="button">
+            {Array.from({ length: totalPages }, (_, index) => {
+              const pageNumber = index + 1
+
+              return (
+                <button
+                  className={`subjects-page-number${pageNumber === currentPage ? ' subjects-page-number--active' : ''}`}
+                  type="button"
+                  key={pageNumber}
+                  onClick={() => setCurrentPage(pageNumber)}
+                >
+                  {pageNumber}
+                </button>
+              )
+            })}
+            <button
+              className="subjects-page-arrow"
+              type="button"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+            >
               ›
             </button>
           </nav>
@@ -190,9 +218,7 @@ export function SubjectsPage() {
           onSubmit={handleSubmitSubject}
         />
       )}
-      {isImportModalOpen && (
-        <ImportModal onClose={() => setImportModalOpen(false)} onImported={loadSubjects} />
-      )}
+      {isImportModalOpen && <ImportModal onClose={() => setImportModalOpen(false)} onImported={loadSubjects} />}
       {isExportModalOpen && <ExportModal onClose={() => setExportModalOpen(false)} />}
     </section>
   )
@@ -202,6 +228,10 @@ function getRequestErrorMessage(error: unknown) {
   if (error instanceof AxiosError) {
     if (error.response?.status === 401 || error.response?.status === 403) {
       return 'Нужно войти в аккаунт, чтобы работать с предметами.'
+    }
+
+    if (error.response?.status && error.response.status >= 500) {
+      return 'Ошибка сервера. Попробуйте повторить запрос позже.'
     }
 
     const detail = error.response?.data?.detail

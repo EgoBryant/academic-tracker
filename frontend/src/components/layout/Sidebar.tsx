@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { removeAuthToken } from '../../api/authToken'
+import { getAuthUser, removeAuthToken } from '../../api/authToken'
 
 interface SidebarProps {
   theme: 'light' | 'dark'
@@ -8,6 +8,7 @@ interface SidebarProps {
 
 export function Sidebar({ theme, onToggleTheme }: SidebarProps) {
   const navigate = useNavigate()
+  const user = getAuthUser()
 
   const handleLogout = () => {
     removeAuthToken()
@@ -18,7 +19,7 @@ export function Sidebar({ theme, onToggleTheme }: SidebarProps) {
     <aside className="sidebar">
       <div className="sidebar__top">
         <h1 className="sidebar__brand">Зачётка</h1>
-        <div className="sidebar__user">Иванов Иван</div>
+        <div className="sidebar__user">{user?.full_name ?? 'Студент'}</div>
       </div>
 
       <nav className="sidebar__nav" aria-label="Основная навигация">
