@@ -225,12 +225,6 @@
   line-height: 20px;
 }
 
-.subject-modal__field .subject-modal__color {
-  color: transparent;
-  caret-color: transparent;
-  background: #1c63ff;
-}
-
 .subject-modal__error {
   margin: 0;
   padding: 10px 12px;

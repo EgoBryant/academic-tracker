@@ -1,6 +1,6 @@
 import axios from 'axios'
 import type { InternalAxiosRequestConfig } from 'axios'
-import { getAuthToken } from './authToken'
+import { getAuthToken } from '../utils/authStorage'
 
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? '/api',

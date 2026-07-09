@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { loginUser, registerUser } from '../../api/auth'
-import { setAuthToken, setAuthUser } from '../../api/authToken'
-import { getApiErrorMessage } from '../../api/errorMessage'
+import { getRegisterErrorMessage } from '../../utils/authErrors'
+import { setAuthToken, setAuthUser } from '../../utils/authStorage'
 
 export function RegisterPage() {
   const navigate = useNavigate()
@@ -49,8 +49,8 @@ export function RegisterPage() {
       setAuthToken(loginResponse.access_token)
       setAuthUser(loginResponse.user)
       navigate('/subjects')
-    } catch (requestError) {
-      setError(getAuthErrorMessage(requestError))
+    } catch (error) {
+      setError(getRegisterErrorMessage(error))
     } finally {
       setSubmitting(false)
     }
@@ -87,12 +87,12 @@ export function RegisterPage() {
 
         <div className="login-auth login-auth--register">
           <div className="login-tabs" role="tablist" aria-label="Вкладки авторизации">
-            <Link className="login-tab" to="/login">
+            <NavLink className={getAuthTabClassName} to="/login">
               Авторизация
-            </Link>
-            <button className="login-tab login-tab--active" type="button">
+            </NavLink>
+            <NavLink className={getAuthTabClassName} to="/register">
               Регистрация
-            </button>
+            </NavLink>
           </div>
 
           <form className="login-card login-card--register" onSubmit={handleSubmit} noValidate>
@@ -164,12 +164,8 @@ function validateRegisterForm(fullName: string, email: string, password: string)
   return null
 }
 
-function getAuthErrorMessage(error: unknown) {
-  return getApiErrorMessage(error, {
-    validation: 'Проверьте данные регистрации.',
-    server: 'Ошибка сервера. Попробуйте позже.',
-    fallback: 'Не удалось создать аккаунт. Проверьте данные и попробуйте ещё раз.',
-  })
+function getAuthTabClassName({ isActive }: { isActive: boolean }) {
+  return isActive ? 'login-tab login-tab--active' : 'login-tab'
 }
 
 function isValidEmail(email: string) {

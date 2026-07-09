@@ -12,6 +12,13 @@ interface ImportModalProps {
 const DEFAULT_ERROR_MESSAGE = 'Не удалось импортировать данные. Попробуйте ещё раз.'
 const EMPTY_IMPORT_MESSAGE =
   'Данные не найдены. Для Excel нужны листы Subjects, Grades и Assignments с правильными заголовками.'
+const IMPORT_ERROR_MESSAGES = {
+  unauthorized: 'Нужно войти в аккаунт, чтобы импортировать данные.',
+  notFound: 'Эндпоинт импорта не найден. Проверьте, что backend запущен с актуальной версией API.',
+  validation: 'Неправильный формат Excel или структура файла.',
+  server: 'Ошибка сервера при импорте. Попробуйте позже.',
+  fallback: DEFAULT_ERROR_MESSAGE,
+}
 
 export function ImportModal({ onClose, onImported }: ImportModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -47,8 +54,8 @@ export function ImportModal({ onClose, onImported }: ImportModalProps) {
 
       setResult(importResult)
       onImported?.()
-    } catch (requestError) {
-      setError(getRequestErrorMessage(requestError))
+    } catch (error) {
+      setError(getApiErrorMessage(error, IMPORT_ERROR_MESSAGES))
     } finally {
       setSubmitting(false)
     }
@@ -142,14 +149,4 @@ function isEmptyImportResult(result: ImportResult) {
     result.imported_assignments === 0 &&
     result.logs.length === 0
   )
-}
-
-function getRequestErrorMessage(error: unknown) {
-  return getApiErrorMessage(error, {
-    unauthorized: 'Нужно войти в аккаунт, чтобы импортировать данные.',
-    notFound: 'Эндпоинт импорта не найден. Проверьте, что backend запущен с актуальной версией API.',
-    validation: 'Неправильный формат Excel или структура файла.',
-    server: 'Ошибка сервера при импорте. Попробуйте позже.',
-    fallback: DEFAULT_ERROR_MESSAGE,
-  })
 }

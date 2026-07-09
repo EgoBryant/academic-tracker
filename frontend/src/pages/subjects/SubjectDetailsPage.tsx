@@ -13,6 +13,11 @@ type GradeModalMode = 'create' | 'edit'
 
 const GRADES_PER_PAGE = 4
 const DEFAULT_ERROR_MESSAGE = 'Не удалось выполнить запрос. Попробуйте ещё раз.'
+const GRADE_ERROR_MESSAGES = {
+  unauthorized: 'Нужно войти в аккаунт, чтобы работать с оценками.',
+  server: 'Ошибка сервера. Попробуйте позже.',
+  fallback: DEFAULT_ERROR_MESSAGE,
+}
 
 export function SubjectDetailsPage() {
   const { id } = useParams()
@@ -49,8 +54,8 @@ export function SubjectDetailsPage() {
       const [loadedGrades, loadedSubjects] = await Promise.all([getGrades(subjectId), getSubjects()])
       setSubject(loadedSubjects.find((loadedSubject) => loadedSubject.subject_id === subjectId) ?? null)
       setGrades(loadedGrades)
-    } catch (requestError) {
-      setError(getRequestErrorMessage(requestError))
+    } catch (error) {
+      setError(getApiErrorMessage(error, GRADE_ERROR_MESSAGES))
     } finally {
       setIsLoading(false)
     }
@@ -108,8 +113,8 @@ export function SubjectDetailsPage() {
 
       setGradeModalOpen(false)
       setSelectedGrade(null)
-    } catch (requestError) {
-      setFormError(getRequestErrorMessage(requestError))
+    } catch (error) {
+      setFormError(getApiErrorMessage(error, GRADE_ERROR_MESSAGES))
     } finally {
       setSubmitting(false)
     }
@@ -121,8 +126,8 @@ export function SubjectDetailsPage() {
       setError(null)
       await deleteGrade(grade.grade_id)
       setGrades((currentGrades) => currentGrades.filter((currentGrade) => currentGrade.grade_id !== grade.grade_id))
-    } catch (requestError) {
-      setError(getRequestErrorMessage(requestError))
+    } catch (error) {
+      setError(getApiErrorMessage(error, GRADE_ERROR_MESSAGES))
     } finally {
       setDeletingGradeId(null)
     }
@@ -421,14 +426,6 @@ function validateGradeForm(payload: GradePayload) {
   }
 
   return null
-}
-
-function getRequestErrorMessage(error: unknown) {
-  return getApiErrorMessage(error, {
-    unauthorized: 'Нужно войти в аккаунт, чтобы работать с оценками.',
-    server: 'Ошибка сервера. Попробуйте позже.',
-    fallback: DEFAULT_ERROR_MESSAGE,
-  })
 }
 
 function formatDate(date: string) {

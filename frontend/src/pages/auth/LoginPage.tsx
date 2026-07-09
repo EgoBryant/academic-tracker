@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { loginUser } from '../../api/auth'
-import { setAuthToken, setAuthUser } from '../../api/authToken'
-import { getApiErrorMessage } from '../../api/errorMessage'
+import { getLoginErrorMessage } from '../../utils/authErrors'
+import { setAuthToken, setAuthUser } from '../../utils/authStorage'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -33,6 +33,7 @@ export function LoginPage() {
     const formData = new FormData(event.currentTarget)
     const email = String(formData.get('email') ?? '').trim()
     const password = String(formData.get('password') ?? '')
+    const rememberMe = formData.get('remember') === 'on'
     const validationError = validateLoginForm(email, password)
 
     if (validationError) {
@@ -44,11 +45,11 @@ export function LoginPage() {
       setSubmitting(true)
       setError(null)
       const loginResponse = await loginUser(email, password)
-      setAuthToken(loginResponse.access_token)
-      setAuthUser(loginResponse.user)
+      setAuthToken(loginResponse.access_token, rememberMe)
+      setAuthUser(loginResponse.user, rememberMe)
       navigate('/subjects')
-    } catch (requestError) {
-      setError(getAuthErrorMessage(requestError))
+    } catch (error) {
+      setError(getLoginErrorMessage(error))
     } finally {
       setSubmitting(false)
     }
@@ -85,12 +86,12 @@ export function LoginPage() {
 
         <div className="login-auth">
           <div className="login-tabs" role="tablist" aria-label="Вкладки авторизации">
-            <button className="login-tab login-tab--active" type="button">
+            <NavLink className={getAuthTabClassName} to="/login">
               Авторизация
-            </button>
-            <Link className="login-tab" to="/register">
+            </NavLink>
+            <NavLink className={getAuthTabClassName} to="/register">
               Регистрация
-            </Link>
+            </NavLink>
           </div>
 
           <form className="login-card" onSubmit={handleSubmit} noValidate>
@@ -119,7 +120,7 @@ export function LoginPage() {
 
             <div className="login-options">
               <label className="login-remember">
-                <input type="checkbox" />
+                <input name="remember" type="checkbox" />
                 <span>Запомнить меня?</span>
               </label>
               <button className="login-forgot" type="button">
@@ -161,12 +162,8 @@ function validateLoginForm(email: string, password: string) {
   return null
 }
 
-function getAuthErrorMessage(error: unknown) {
-  return getApiErrorMessage(error, {
-    unauthorized: 'Неверный email или пароль.',
-    server: 'Ошибка сервера. Попробуйте позже.',
-    fallback: 'Не удалось войти. Проверьте email и пароль.',
-  })
+function getAuthTabClassName({ isActive }: { isActive: boolean }) {
+  return isActive ? 'login-tab login-tab--active' : 'login-tab'
 }
 
 function isValidEmail(email: string) {

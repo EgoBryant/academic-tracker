@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { getAuthToken } from '../../api/authToken'
 import { getApiErrorMessage } from '../../api/errorMessage'
 import { createSubject, deleteSubject, getSubjects, updateSubject } from '../../api/subjects'
 import { ExportModal } from '../../components/export/ExportModal'
@@ -7,11 +6,17 @@ import { ImportModal } from '../../components/export/ImportModal'
 import { SubjectForm } from '../../components/subjects/SubjectForm'
 import { SubjectTable } from '../../components/subjects/SubjectTable'
 import type { Subject, SubjectPayload } from '../../types/subject'
+import { getAuthToken } from '../../utils/authStorage'
 
 type SubjectModalMode = 'create' | 'edit'
 
-const SUBJECTS_PER_PAGE = 4
+const SUBJECTS_PER_PAGE = 10
 const DEFAULT_ERROR_MESSAGE = 'Не удалось выполнить запрос. Попробуйте ещё раз.'
+const SUBJECT_ERROR_MESSAGES = {
+  unauthorized: 'Нужно войти в аккаунт, чтобы работать с предметами.',
+  server: 'Ошибка сервера. Попробуйте повторить запрос позже.',
+  fallback: DEFAULT_ERROR_MESSAGE,
+}
 
 export function SubjectsPage() {
   const [subjects, setSubjects] = useState<Subject[]>([])
@@ -47,8 +52,8 @@ export function SubjectsPage() {
       setError(null)
       const loadedSubjects = await getSubjects()
       setSubjects(loadedSubjects)
-    } catch (requestError) {
-      setError(getRequestErrorMessage(requestError))
+    } catch (error) {
+      setError(getApiErrorMessage(error, SUBJECT_ERROR_MESSAGES))
     } finally {
       setIsLoading(false)
     }
@@ -98,8 +103,8 @@ export function SubjectsPage() {
 
       setSubjectModalOpen(false)
       setSelectedSubject(null)
-    } catch (requestError) {
-      setFormError(getRequestErrorMessage(requestError))
+    } catch (error) {
+      setFormError(getApiErrorMessage(error, SUBJECT_ERROR_MESSAGES))
     } finally {
       setSubmitting(false)
     }
@@ -113,8 +118,8 @@ export function SubjectsPage() {
       setSubjects((currentSubjects) =>
         currentSubjects.filter((currentSubject) => currentSubject.subject_id !== subject.subject_id),
       )
-    } catch (requestError) {
-      setError(getRequestErrorMessage(requestError))
+    } catch (error) {
+      setError(getApiErrorMessage(error, SUBJECT_ERROR_MESSAGES))
     } finally {
       setDeletingSubjectId(null)
     }
@@ -222,12 +227,4 @@ export function SubjectsPage() {
       {isExportModalOpen && <ExportModal onClose={() => setExportModalOpen(false)} />}
     </section>
   )
-}
-
-function getRequestErrorMessage(error: unknown) {
-  return getApiErrorMessage(error, {
-    unauthorized: 'Нужно войти в аккаунт, чтобы работать с предметами.',
-    server: 'Ошибка сервера. Попробуйте повторить запрос позже.',
-    fallback: DEFAULT_ERROR_MESSAGE,
-  })
 }

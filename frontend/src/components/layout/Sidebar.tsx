@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { getAuthUser, removeAuthToken } from '../../api/authToken'
+import { getAuthUser, removeAuthToken } from '../../utils/authStorage'
 
 interface SidebarProps {
   theme: 'light' | 'dark'

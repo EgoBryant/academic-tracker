@@ -9,6 +9,11 @@ interface ExportModalProps {
 }
 
 const DEFAULT_ERROR_MESSAGE = 'Не удалось экспортировать данные. Попробуйте ещё раз.'
+const EXPORT_ERROR_MESSAGES = {
+  unauthorized: 'Нужно войти в аккаунт, чтобы экспортировать данные.',
+  server: 'Ошибка сервера при экспорте. Попробуйте позже.',
+  fallback: DEFAULT_ERROR_MESSAGE,
+}
 
 export function ExportModal({ onClose }: ExportModalProps) {
   const [format, setFormat] = useState<ExportFormat>('xlsx')
@@ -24,8 +29,8 @@ export function ExportModal({ onClose }: ExportModalProps) {
       const { file, fileName } = await exportUserData(format)
       downloadFile(file, fileName)
       onClose()
-    } catch (requestError) {
-      setError(getRequestErrorMessage(requestError))
+    } catch (error) {
+      setError(getApiErrorMessage(error, EXPORT_ERROR_MESSAGES))
     } finally {
       setSubmitting(false)
     }
@@ -113,12 +118,4 @@ function downloadFile(file: Blob, fileName: string) {
   link.click()
   link.remove()
   URL.revokeObjectURL(fileUrl)
-}
-
-function getRequestErrorMessage(error: unknown) {
-  return getApiErrorMessage(error, {
-    unauthorized: 'Нужно войти в аккаунт, чтобы экспортировать данные.',
-    server: 'Ошибка сервера при экспорте. Попробуйте позже.',
-    fallback: DEFAULT_ERROR_MESSAGE,
-  })
 }
