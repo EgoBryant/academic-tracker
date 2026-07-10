@@ -14,7 +14,6 @@ from app.repository.subjects import SubjectRepository
 router = APIRouter(prefix="/api/assignments", tags=["Assignments"])
 
 
-# ОБНОВЛЕННАЯ ФУНКЦИЯ-ФАБРИКА
 async def get_assignment_service(db: AsyncSession = Depends(get_db)) -> AssignmentService:
     repo = AssignmentRepository(db)
     subject_repo = SubjectRepository(db)

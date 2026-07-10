@@ -12,7 +12,6 @@ class GradeService:
 
     async def _verify_subject_owner(self, subject_id: int, user_id: int):
         """Вспомогательный метод безопасности"""
-        # Используем сессию через репозиторий, чтобы не хранить её в сервисе
         from app.models.subject import Subject
         query = select(Subject).where(Subject.subject_id == subject_id, Subject.user_id == user_id)
         result = await self.repo.db.execute(query) 

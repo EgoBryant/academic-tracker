@@ -12,7 +12,6 @@ class AssignmentCreate(AssignmentBase):
     @classmethod
     def parse_and_truncate_to_minutes(cls, v):
         if isinstance(v, str):
-            # Перебираем все возможные маски, которые может прислать фронтенд
             for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%d %H:%M:%S"):
                 try:
                     dt = datetime.strptime(v, fmt)
@@ -20,7 +19,6 @@ class AssignmentCreate(AssignmentBase):
                 except ValueError:
                     continue
             
-            # Если через strptime не вышло, пробуем универсальный isoformat
             try:
                 dt = datetime.fromisoformat(v.replace('Z', '+00:00'))
                 return dt.replace(second=0, microsecond=0, tzinfo=None)
@@ -63,7 +61,6 @@ class AssignmentResponse(AssignmentBase):
 
     model_config = ConfigDict(from_attributes=True)
 
-    # КРИТИЧЕСКИ ВАЖНО: Форматируем вывод JSON строго по вашему ТЗ
     @field_serializer('due_datetime')
     def serialize_dt(self, dt: datetime, _info):
         return dt.strftime("%Y-%m-%d %H:%M")

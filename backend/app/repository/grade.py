@@ -9,28 +9,23 @@ class GradeRepository:
         self.db = db
 
     async def get_by_id(self, grade_id: int) -> Optional[Grade]:
-        """Получить оценку по её ID"""
         result = await self.db.execute(select(Grade).where(Grade.grade_id == grade_id))
         return result.scalar_one_or_none()
 
     async def get_by_subject_id(self, subject_id: int) -> List[Grade]:
-        """Получить все оценки конкретного предмета"""
         result = await self.db.execute(select(Grade).where(Grade.subject_id == subject_id))
         return list(result.scalars().all())
 
     async def create(self, grade: Grade) -> Grade:
-        """Добавить объект оценки в сессию"""
         self.db.add(grade)
         await self.db.flush()
         return grade
 
     async def delete(self, grade: Grade) -> None:
-        """Удалить объект оценки из сессии"""
         await self.db.delete(grade)
         await self.db.flush()
 
     async def calculate_and_update_average(self, subject_id: int) -> float:
-        """Пересчитать средний балл на стороне PostgreSQL"""
         numeric_filter = Grade.grade_value.op('~')('^[0-9]+(\\.[0-9]+)?$')
         
         query = (
@@ -53,9 +48,7 @@ class GradeRepository:
 
 
     async def commit(self) -> None:
-        """Фиксация текущей транзакции в базе данных"""
         await self.db.commit()
 
     async def refresh(self, instance: any) -> None:
-        """Обновление состояния объекта актуальными данными из БД"""
         await self.db.refresh(instance)

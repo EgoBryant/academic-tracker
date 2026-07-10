@@ -11,5 +11,4 @@ class Subject(Base):
     teacher_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     color: Mapped[str | None] = mapped_column(String(7), nullable=True)
     
-    # Считаем и храним средний балл прямо в этой колонке в БД
     average_grade: Mapped[float] = mapped_column(Float, default=0.0, server_default="0.0", nullable=False)

@@ -8,16 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.subject import Subject
 from app.models.grade import Grade
 from app.models.assignment import Assignment
-from app.repository.export_import import DataTransferRepository  # Подключаем репозиторий
+from app.repository.export_import import DataTransferRepository  
 
 class DataTransferService:
     def __init__(self, db: AsyncSession):
-        # Инициализируем репозиторий. Сам сервис self.db у себя не хранит
         self.repo = DataTransferRepository(db)
 
     async def export_to_xlsx(self, user_id: int) -> io.BytesIO:
-        """Экспорт предметов, оценок и заданий пользователя в один XLSX файл (3 листа)"""
-        # 1. Чтение данных делегировано репозиторию
         subjects = await self.repo.get_subjects_by_user(user_id)
         subject_ids = [s.subject_id for s in subjects]
         sub_map = {s.subject_id: s.subject_name for s in subjects}
@@ -51,7 +48,6 @@ class DataTransferService:
             } for s in subjects
         ]
 
-        # 2. Формирование файлов (Бизнес-логика/Конвертация)
         df_subjects = pd.DataFrame(subjects_list)
         df_grades = pd.DataFrame(grades_list)
         df_assignments = pd.DataFrame(assignments_list)
@@ -112,7 +108,6 @@ class DataTransferService:
         df_grades = pd.DataFrame()
         df_assignments = pd.DataFrame()
 
-        # 1. Чтение бинарного представления во фреймы данных
         try:
             if file_type == "xlsx":
                 excel_file = pd.ExcelFile(io.BytesIO(file_bytes))
@@ -144,7 +139,6 @@ class DataTransferService:
 
         subject_name_to_id = {}
 
-        # 2. Обработка импорта предметов (Subjects)
         if not df_subjects.empty:
             for index, row in df_subjects.iterrows():
                 row_num = index + 2

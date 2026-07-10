@@ -18,7 +18,6 @@ class AssignmentRepository:
         return result.scalar_one_or_none()
 
     async def get_all_by_user(self, user_id: int):
-        # Получаем все задания для всех предметов конкретного пользователя
         query = (
             select(Assignment)
             .join(Subject, Subject.subject_id == Assignment.subject_id)
@@ -28,7 +27,6 @@ class AssignmentRepository:
         return result.scalars().all()
     
     async def delete(self, assignment: Assignment) -> None:
-        """Удалить задание из сессии (без фиксации коммита)."""
         await self.db.delete(assignment)
         await self.db.flush()
     
@@ -36,11 +34,9 @@ class AssignmentRepository:
         self.db.add(instance)
 
     async def flush(self) -> None:
-        """Синхронизировать состояние объектов с БД в рамках транзакции"""
         await self.db.flush()
 
     async def commit(self) -> None:
-        """Зафиксировать транзакцию"""
         await self.db.commit()
     
     async def refresh(self, instance: any) -> None:

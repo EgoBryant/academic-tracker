@@ -8,25 +8,19 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
-# 1. Добавляем текущую рабочую директорию в пути Python.
-# Теперь Alembic сможет спокойно импортировать пакет "app"
+
 sys.path.insert(0, os.getcwd())
 
-# 2. Импортируем твой синглтон настроек и базовый класс моделей
 from app.core.config import settings
 from app.models import Base  # Импорт соберет все модели из твоего app/models/__init__.py
 
-# Это объект конфигурации Alembic
 config = context.config
 
-# 3. Передаем асинхронный URL из твоего .env прямо в конфигурацию Alembic
 config.set_main_option("sqlalchemy.url", settings.async_database_url)
 
-# Настройка логирования (берется из alembic.ini)
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Указываем метаданные наших моделей для autogenerate
 target_metadata = Base.metadata
 
 

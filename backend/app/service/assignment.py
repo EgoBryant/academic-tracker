@@ -6,7 +6,6 @@ from app.models.assignment import Assignment
 
 class AssignmentService:
     def __init__(self, repo: AssignmentRepository, subject_repo: SubjectRepository):
-        # Сервис принимает уже Готовые репозитории в качестве параметров
         self.repo = repo
         self.subject_repo = subject_repo
 
@@ -29,7 +28,6 @@ class AssignmentService:
         
         created = await self.repo.create(new_assignment)
         
-        # Коммит и рефреш теперь вызываются через репозиторий
         await self.repo.commit()
         await self.repo.refresh(created)
         return created
@@ -76,7 +74,6 @@ class AssignmentService:
                 detail="Нет прав на изменение этого предмета"
             )
 
-        # Удаление также инкапсулировано в репозитории
         await self.repo.delete(assignment)
         await self.repo.commit()
         return {"status": "success", "detail": "Задание успешно удалено"}

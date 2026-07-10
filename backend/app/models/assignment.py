@@ -14,5 +14,4 @@ class Assignment(Base):
     )
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     
-    # Имя поля строго соответствует конструктору в сервисе
     due_datetime: Mapped[datetime] = mapped_column(DateTime, nullable=False)

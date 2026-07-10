@@ -10,7 +10,6 @@ from app.service.grade import GradeService
 
 router = APIRouter(tags=["Grades"])
 
-# Фабрика для инициализации сервиса оценок
 def get_grade_service(db: AsyncSession = Depends(get_db)) -> GradeService:
     return GradeService(db)
 
@@ -21,10 +20,7 @@ async def get_grades(
     current_user: User = Depends(get_current_user),
     service: GradeService = Depends(get_grade_service)
 ):
-    """
-    Получение всех оценок по конкретному предмету.
-    Доступно только владельцу предмета.
-    """
+
     return await service.get_grades(subject_id, current_user.user_id)
 
 
@@ -35,10 +31,7 @@ async def create_grade(
     current_user: User = Depends(get_current_user),
     service: GradeService = Depends(get_grade_service)
 ):
-    """
-    Добавление новой оценки к предмету.
-    Принимает строку (например, '5', 'A', '80'), описание (до 200 символов) и дату YYYY-MM-DD.
-    """
+
     return await service.create_grade(subject_id, grade_in, current_user.user_id)
 
 
@@ -49,9 +42,7 @@ async def update_grade(
     current_user: User = Depends(get_current_user),
     service: GradeService = Depends(get_grade_service)
 ):
-    """
-    Изменение существующей оценки (значение, описание или дата).
-    """
+
     return await service.update_grade(grade_id, grade_in, current_user.user_id)
 
 
@@ -61,8 +52,6 @@ async def delete_grade(
     current_user: User = Depends(get_current_user),
     service: GradeService = Depends(get_grade_service)
 ):
-    """
-    Удаление оценки по её ID.
-    """
+
     await service.delete_grade(grade_id, current_user.user_id)
     return None

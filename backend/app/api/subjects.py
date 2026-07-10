@@ -11,7 +11,6 @@ from app.service.subjects import SubjectService
 
 router = APIRouter(prefix="/api/subjects", tags=["Subjects"])
 
-# Конструктор сборки слоев для предметов
 def get_subject_service(db: AsyncSession = Depends(get_db)) -> SubjectService:
     subject_repo = SubjectRepository(db)
     return SubjectService(subject_repo)
@@ -21,7 +20,6 @@ async def get_subjects(
     current_user: User = Depends(get_current_user),
     service: SubjectService = Depends(get_subject_service)
 ):
-    """Получение списка всех предметов текущего студента."""
     return await service.get_user_subjects(current_user.user_id)
 
 @router.post("/", response_model=SubjectResponse, status_code=status.HTTP_201_CREATED)
@@ -30,7 +28,6 @@ async def create_subject(
     current_user: User = Depends(get_current_user),
     service: SubjectService = Depends(get_subject_service)
 ):
-    """Создание нового предмета."""
     return await service.create_user_subject(subject_in, current_user.user_id)
 
 @router.put("/{subject_id}", response_model=SubjectResponse)
@@ -40,7 +37,6 @@ async def update_subject(
     current_user: User = Depends(get_current_user),
     service: SubjectService = Depends(get_subject_service)
 ):
-    """Редактирование параметров предмета."""
     return await service.update_user_subject(subject_id, subject_in, current_user.user_id)
 
 @router.delete("/{subject_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -49,6 +45,5 @@ async def delete_subject(
     current_user: User = Depends(get_current_user),
     service: SubjectService = Depends(get_subject_service)
 ):
-    """Удаление предмета."""
     await service.delete_user_subject(subject_id, current_user.user_id)
     return None

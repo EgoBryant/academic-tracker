@@ -9,21 +9,18 @@ from app.api.subjects import router as subjects_router
 from app.api.assignments import router as assignments_router
 from app.api.export_import import router as export_import_router
 from app.api.grade import router as grade_router
-# 1. Определяем логику жизненного цикла приложения
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield 
     await close_database_connection()
 
 
-# 2. Передаем lifespan в инициализацию FastAPI
 app = FastAPI(
     title="Веб-трекер успеваемости и долгов",
     version="1.0.0",
-    lifespan=lifespan  # <-- Подключаем здесь
+    lifespan=lifespan  
 )
 
-# Настройка CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -32,7 +29,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Подключение роутеров
 app.include_router(auth_router)
 app.include_router(subjects_router)
 app.include_router(assignments_router)
