@@ -11,8 +11,10 @@ from alembic import context
 
 sys.path.insert(0, os.getcwd())
 
-from app.core.config import settings
+from app.core.config import get_settings
+
 from app.models import Base  # Импорт соберет все модели из твоего app/models/__init__.py
+settings = get_settings()
 
 config = context.config
 
